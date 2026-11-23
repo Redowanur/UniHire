@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import {
-  AuthError,
   AuthShell,
   FormField,
   SubmitButton,
@@ -19,19 +20,17 @@ export default function LoginPage() {
   const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(null);
     setLoading(true);
     try {
       const { access_token, user_type } = await login(email.trim(), password);
       await signIn(access_token, user_type);
-      router.push("/");
+      router.push(user_type === "recruiter" ? "/recruiter/dashboard" : "/cohort");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again.");
       setLoading(false);
     }
   }
@@ -49,8 +48,6 @@ export default function LoginPage() {
       }
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <AuthError message={error} />
-
         <FormField label="Email" htmlFor="login-email">
           <input
             id="login-email"
@@ -76,6 +73,15 @@ export default function LoginPage() {
             className={inputClass}
           />
         </FormField>
+
+        <div className="-mt-2 text-right">
+          <Link
+            href="/forgot-password"
+            className="text-sm font-semibold text-primary-600 transition-colors hover:text-primary-700"
+          >
+            Forgot password?
+          </Link>
+        </div>
 
         <SubmitButton loading={loading}>Log in</SubmitButton>
       </form>

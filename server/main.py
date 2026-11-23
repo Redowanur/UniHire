@@ -15,7 +15,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     lifespan=lifespan,
-    title="Podarpon",
+    title="UniHire",
     description="Campus Placement Management System",
 )
 

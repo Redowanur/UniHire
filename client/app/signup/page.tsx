@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState, type FormEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Building2, GraduationCap } from "lucide-react";
+import { toast } from "sonner";
 import {
-  AuthError,
   AuthShell,
   FormField,
+  PhoneField,
   SubmitButton,
   SwitchAuthLink,
   inputClass,
@@ -29,12 +30,17 @@ const selectClass = cn(
   "cursor-pointer appearance-none bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2398a2b3%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><path d=%22m6 9 6 6 6-6%22/></svg>')] bg-[length:1rem] bg-[right_0.9rem_center] bg-no-repeat pr-9",
 );
 
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : "Something went wrong. Please try again.";
+}
+
 /* --------------------------------- */
 /* Student sign up                   */
 /* --------------------------------- */
 
 function StudentSignUpForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { signIn } = useAuth();
   const [form, setForm] = useState({
     name: "",
@@ -42,13 +48,12 @@ function StudentSignUpForm() {
     reg_no: "",
     phone: "",
     password: "",
+    confirmPassword: "",
   });
   const [universities, setUniversities] = useState<University[]>([]);
   const [departments, setDepartments] = useState<University[]>([]);
   const [uniId, setUniId] = useState("");
   const [deptId, setDeptId] = useState("");
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -58,7 +63,7 @@ function StudentSignUpForm() {
         if (!cancelled) setUniversities(data);
       })
       .catch(() => {
-        if (!cancelled) setLoadError("Couldn't load universities. Refresh to try again.");
+        if (!cancelled) toast.error("Couldn't load universities. Refresh to try again.");
       });
     return () => {
       cancelled = true;
@@ -70,13 +75,10 @@ function StudentSignUpForm() {
     let cancelled = false;
     fetchDepartments(uniId)
       .then((data) => {
-        if (!cancelled) {
-          setDepartments(data);
-          setLoadError(null);
-        }
+        if (!cancelled) setDepartments(data);
       })
       .catch(() => {
-        if (!cancelled) setLoadError("Couldn't load departments. Try selecting again.");
+        if (!cancelled) toast.error("Couldn't load departments. Try selecting again.");
       });
     return () => {
       cancelled = true;
@@ -89,7 +91,12 @@ function StudentSignUpForm() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(null);
+
+    if (form.password !== form.confirmPassword) {
+      toast.error("Passwords do not match.");
+      return;
+    }
+
     setLoading(true);
     try {
       await signUpStudent({
@@ -111,18 +118,15 @@ function StudentSignUpForm() {
         // Verification can be requested again later from the app
       });
 
-      router.push("/");
+      router.push(searchParams.get("next") || "/onboarding/cohort");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      toast.error(errorMessage(err));
       setLoading(false);
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <AuthError message={error} />
-      {loadError ? <p className="text-xs font-medium text-amber-600">{loadError}</p> : null}
-
       <FormField label="Full name" htmlFor="student-name">
         <input
           id="student-name"
@@ -213,18 +217,11 @@ function StudentSignUpForm() {
         </FormField>
       </div>
 
+      <FormField label="Phone" htmlFor="student-phone">
+        <PhoneField id="student-phone" value={form.phone} onChange={(v) => update("phone", v)} />
+      </FormField>
+
       <div className="grid gap-4 sm:grid-cols-2">
-        <FormField label="Phone" htmlFor="student-phone">
-          <input
-            id="student-phone"
-            type="tel"
-            required
-            placeholder="+8801XXXXXXXX"
-            value={form.phone}
-            onChange={(event) => update("phone", event.target.value)}
-            className={inputClass}
-          />
-        </FormField>
         <FormField label="Password" htmlFor="student-password">
           <input
             id="student-password"
@@ -238,10 +235,22 @@ function StudentSignUpForm() {
             className={inputClass}
           />
         </FormField>
+        <FormField label="Confirm password" htmlFor="student-confirm-password">
+          <input
+            id="student-confirm-password"
+            type="password"
+            required
+            minLength={8}
+            autoComplete="new-password"
+            placeholder="Re-enter password"
+            value={form.confirmPassword}
+            onChange={(event) => update("confirmPassword", event.target.value)}
+            className={inputClass}
+          />
+        </FormField>
       </div>
 
-      <SubmitButton loading={loading}>
-        <GraduationCap className="size-4.5" />
+      <SubmitButton loading={loading} icon={<GraduationCap className="size-4.5" />}>
         Create student account
       </SubmitButton>
     </form>
@@ -260,10 +269,10 @@ function RecruiterSignUpForm() {
     email: "",
     phone: "",
     password: "",
+    confirmPassword: "",
     company_name: "",
     designation: "",
   });
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   function update(field: keyof typeof form, value: string) {
@@ -272,7 +281,12 @@ function RecruiterSignUpForm() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(null);
+
+    if (form.password !== form.confirmPassword) {
+      toast.error("Passwords do not match.");
+      return;
+    }
+
     setLoading(true);
     try {
       await signUpRecruiter({
@@ -293,17 +307,15 @@ function RecruiterSignUpForm() {
         // Verification can be requested again later from the app
       });
 
-      router.push("/");
+      router.push("/recruiter/dashboard");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      toast.error(errorMessage(err));
       setLoading(false);
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <AuthError message={error} />
-
       <FormField label="Full name" htmlFor="recruiter-name">
         <input
           id="recruiter-name"
@@ -332,15 +344,7 @@ function RecruiterSignUpForm() {
           />
         </FormField>
         <FormField label="Phone" htmlFor="recruiter-phone">
-          <input
-            id="recruiter-phone"
-            type="tel"
-            required
-            placeholder="+8801XXXXXXXX"
-            value={form.phone}
-            onChange={(event) => update("phone", event.target.value)}
-            className={inputClass}
-          />
+          <PhoneField id="recruiter-phone" value={form.phone} onChange={(v) => update("phone", v)} />
         </FormField>
       </div>
 
@@ -373,22 +377,36 @@ function RecruiterSignUpForm() {
         </FormField>
       </div>
 
-      <FormField label="Password" htmlFor="recruiter-password">
-        <input
-          id="recruiter-password"
-          type="password"
-          required
-          minLength={6}
-          autoComplete="new-password"
-          placeholder="Min. 6 characters"
-          value={form.password}
-          onChange={(event) => update("password", event.target.value)}
-          className={inputClass}
-        />
-      </FormField>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField label="Password" htmlFor="recruiter-password">
+          <input
+            id="recruiter-password"
+            type="password"
+            required
+            minLength={6}
+            autoComplete="new-password"
+            placeholder="Min. 6 characters"
+            value={form.password}
+            onChange={(event) => update("password", event.target.value)}
+            className={inputClass}
+          />
+        </FormField>
+        <FormField label="Confirm password" htmlFor="recruiter-confirm-password">
+          <input
+            id="recruiter-confirm-password"
+            type="password"
+            required
+            minLength={6}
+            autoComplete="new-password"
+            placeholder="Re-enter password"
+            value={form.confirmPassword}
+            onChange={(event) => update("confirmPassword", event.target.value)}
+            className={inputClass}
+          />
+        </FormField>
+      </div>
 
-      <SubmitButton loading={loading}>
-        <Building2 className="size-4.5" />
+      <SubmitButton loading={loading} icon={<Building2 className="size-4.5" />}>
         Create recruiter account
       </SubmitButton>
     </form>
@@ -421,7 +439,9 @@ export default function SignupPage() {
         </TabsList>
 
         <TabsContent value="student" className="animate-overlay-in">
-          <StudentSignUpForm />
+          <Suspense fallback={null}>
+            <StudentSignUpForm />
+          </Suspense>
         </TabsContent>
         <TabsContent value="recruiter" className="animate-overlay-in">
           <RecruiterSignUpForm />

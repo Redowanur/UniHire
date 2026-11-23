@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { ChevronDown, LogOut } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { ChevronDown, LayoutDashboard, LogOut } from "lucide-react";
 import { useRef } from "react";
 
 import { Icon } from "@/components/icon";
@@ -12,6 +12,62 @@ import { Container } from "@/components/ui/container";
 import { useAuth } from "@/hooks/use-auth";
 import { navLinks } from "@/lib/data";
 import { cn } from "@/lib/utils";
+
+function NavLinks({ mobile, onNavigate }: { mobile?: boolean; onNavigate?: () => void }) {
+  const pathname = usePathname();
+  return (
+    <>
+      {navLinks.map((link) => {
+        const active = pathname === link.href;
+        return (
+          <Link
+            key={link.label}
+            href={link.href}
+            aria-current={active ? "page" : undefined}
+            onClick={onNavigate}
+            className={cn(
+              "text-sm font-medium transition-colors",
+              mobile ? "rounded-lg px-3 py-2.5" : undefined,
+              active
+                ? mobile
+                  ? "bg-white/5 text-primary-400"
+                  : "text-primary-400"
+                : mobile
+                  ? "text-white/75 hover:bg-white/5 hover:text-white"
+                  : "text-white/70 hover:text-white",
+            )}
+          >
+            {link.label}
+          </Link>
+        );
+      })}
+    </>
+  );
+}
+
+function NavLinksFallback({ mobile }: { mobile?: boolean }) {
+  return (
+    <>
+      {navLinks.map((link) => (
+        <Link
+          key={link.label}
+          href={link.href}
+          className={cn(
+            "text-sm font-medium transition-colors",
+            mobile ? "rounded-lg px-3 py-2.5 text-white/75 hover:bg-white/5 hover:text-white" : "text-white/70 hover:text-white",
+          )}
+        >
+          {link.label}
+        </Link>
+      ))}
+    </>
+  );
+}
+
+function dashboardHref(user: { user_type: string; cohort_id?: string | null }) {
+  if (user.user_type === "recruiter") return "/recruiter/dashboard";
+  return user.cohort_id ? "/cohort" : "/onboarding/cohort";
+}
 
 function AuthArea({ mobile, onNavigate }: { mobile?: boolean; onNavigate?: () => void }) {
   const { user, status, signOut } = useAuth();
@@ -60,10 +116,36 @@ function AuthArea({ mobile, onNavigate }: { mobile?: boolean; onNavigate?: () =>
   const typeLabel =
     user.user_type === "recruiter" ? "Recruiter" : user.user_type === "student" ? "Student" : "Admin";
 
+  if (mobile) {
+    return (
+      <div className="flex w-full flex-col gap-2">
+        <Link
+          href={dashboardHref(user)}
+          onClick={onNavigate}
+          className="flex items-center gap-2.5 rounded-full bg-primary-500 py-2.5 text-center text-sm font-semibold text-white"
+        >
+          <LayoutDashboard className="size-4" />
+          Dashboard
+        </Link>
+        <button
+          type="button"
+          onClick={() => {
+            onNavigate?.();
+            signOut();
+          }}
+          className="flex items-center justify-center gap-2 rounded-full border border-white/20 py-2.5 text-sm font-medium text-white/80"
+        >
+          <LogOut className="size-4" />
+          Log out
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div
       ref={menuRef}
-      className={cn("relative", mobile ? "w-full" : "hidden md:block")}
+      className="relative hidden md:block"
       onBlur={(event) => {
         if (!menuRef.current?.contains(event.relatedTarget as Node)) setMenuOpen(false);
       }}
@@ -99,6 +181,15 @@ function AuthArea({ mobile, onNavigate }: { mobile?: boolean; onNavigate?: () =>
             <p className="truncate text-sm font-semibold text-heading">{user.name}</p>
             <p className="truncate text-xs text-body">{user.email}</p>
           </div>
+          <Link
+            href={dashboardHref(user)}
+            role="menuitem"
+            onClick={() => setMenuOpen(false)}
+            className="flex w-full items-center gap-2.5 px-4 py-3 text-left text-sm font-medium text-body transition-colors hover:bg-surface hover:text-heading"
+          >
+            <LayoutDashboard className="size-4" />
+            Dashboard
+          </Link>
           <button
             type="button"
             role="menuitem"
@@ -127,19 +218,9 @@ export function Header() {
         <Logo inverted />
 
         <nav aria-label="Main" className="hidden items-center gap-8 md:flex">
-          {navLinks.map((link) => (
-            <Link
-              key={link.label}
-              href={link.href}
-              aria-current={link.active ? "page" : undefined}
-              className={cn(
-                "text-sm font-medium transition-colors",
-                link.active ? "text-primary-400" : "text-white/70 hover:text-white",
-              )}
-            >
-              {link.label}
-            </Link>
-          ))}
+          <Suspense fallback={<NavLinksFallback />}>
+            <NavLinks />
+          </Suspense>
         </nav>
 
         <div className="hidden items-center gap-6 md:flex">
@@ -164,21 +245,9 @@ export function Header() {
           className="border-t border-white/10 bg-night-950 md:hidden"
         >
           <Container className="flex flex-col gap-1 py-4">
-            {navLinks.map((link) => (
-              <Link
-                key={link.label}
-                href={link.href}
-                onClick={() => setOpen(false)}
-                className={cn(
-                  "rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                  link.active
-                    ? "bg-white/5 text-primary-400"
-                    : "text-white/75 hover:bg-white/5 hover:text-white",
-                )}
-              >
-                {link.label}
-              </Link>
-            ))}
+            <Suspense fallback={<NavLinksFallback mobile />}>
+              <NavLinks mobile onNavigate={() => setOpen(false)} />
+            </Suspense>
             <div className="mt-3 border-t border-white/10 pt-4">
               <AuthArea
                 mobile

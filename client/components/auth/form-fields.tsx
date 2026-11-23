@@ -7,7 +7,7 @@ import { LoaderCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const inputClass =
-  "h-11 w-full rounded-xl border border-line bg-white px-3.5 text-sm font-medium text-heading outline-none transition-all duration-200 placeholder:font-normal placeholder:text-muted hover:border-muted focus:border-primary-400 focus:shadow-[0_0_0_3px_rgb(44_177_138_/_0.12)]";
+  "h-11 w-full rounded-xl border border-line bg-white px-3.5 text-sm font-medium text-heading outline-none transition-all duration-200 placeholder:font-normal placeholder:text-muted hover:border-muted focus:border-primary-400 focus:shadow-[0_0_0_3px_rgb(109_83_236_/_0.14)]";
 
 export function FormField({
   label,
@@ -33,10 +33,13 @@ export function FormField({
 
 export function SubmitButton({
   loading,
+  icon,
   children,
   className,
 }: {
   loading: boolean;
+  /** Leading icon shown when not loading; swapped for a spinner while loading. */
+  icon?: ReactNode;
   children: ReactNode;
   className?: string;
 }) {
@@ -45,18 +48,12 @@ export function SubmitButton({
       type="submit"
       disabled={loading}
       className={cn(
-        "h-12 w-full rounded-xl bg-primary-500 text-sm font-semibold text-white transition-colors duration-200 hover:bg-primary-600 active:bg-primary-700 disabled:pointer-events-none disabled:opacity-60",
+        "flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary-500 text-sm font-semibold text-white transition-colors duration-200 hover:bg-primary-600 active:bg-primary-700 disabled:pointer-events-none disabled:opacity-60",
         className,
       )}
     >
-      {loading ? (
-        <span className="flex items-center justify-center gap-2">
-          <LoaderCircle className="size-4 animate-spin" />
-          {children}
-        </span>
-      ) : (
-        children
-      )}
+      {loading ? <LoaderCircle className="size-4 shrink-0 animate-spin" /> : icon}
+      {children}
     </button>
   );
 }
@@ -92,15 +89,38 @@ export function AuthShell({
   );
 }
 
-export function AuthError({ message }: { message: string | null }) {
-  if (!message) return null;
+/** Fixed "+880" prefix with a 10-digit-only input; value/onChange carry just the digits. */
+export function PhoneField({
+  id,
+  value,
+  onChange,
+  required = true,
+}: {
+  id?: string;
+  value: string;
+  onChange: (digits: string) => void;
+  required?: boolean;
+}) {
   return (
     <div
-      role="alert"
-      className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm font-medium text-red-600"
+      className={cn(
+        "flex h-11 w-full items-center gap-1.5 rounded-xl border border-line bg-white pl-3.5 text-sm font-medium text-heading outline-none transition-all duration-200 hover:border-muted focus-within:border-primary-400 focus-within:shadow-[0_0_0_3px_rgb(109_83_236_/_0.14)]",
+      )}
     >
-      <span aria-hidden className="mt-0.5 size-2 shrink-0 rounded-full bg-red-500" />
-      {message}
+      <span className="shrink-0 select-none text-muted">+880</span>
+      <input
+        id={id}
+        type="tel"
+        inputMode="numeric"
+        autoComplete="tel-national"
+        required={required}
+        maxLength={10}
+        pattern="[0-9]{10}"
+        placeholder="1XXXXXXXXX"
+        value={value}
+        onChange={(event) => onChange(event.target.value.replace(/\D/g, "").slice(0, 10))}
+        className="h-full min-w-0 flex-1 rounded-r-xl bg-transparent pr-3.5 outline-none placeholder:font-normal placeholder:text-muted"
+      />
     </div>
   );
 }

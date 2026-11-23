@@ -3,32 +3,26 @@ import { Container } from "@/components/ui/container";
 import { Logo } from "@/components/logo";
 import {
   footerAbout,
-  footerCategories,
-  footerCompany,
+  footerAccounts,
   footerNewsletter,
+  footerPlatform,
+  type FooterLink,
 } from "@/lib/data";
 
-const columnTitle =
-  "font-display text-base font-semibold text-white";
+const columnTitle = "font-display text-base font-semibold text-white";
 
-function FooterColumn({
-  title,
-  items,
-}: {
-  title: string;
-  items: string[];
-}) {
+function FooterColumn({ title, items }: { title: string; items: FooterLink[] }) {
   return (
     <div>
       <p className={columnTitle}>{title}</p>
       <ul className="mt-5 space-y-3">
         {items.map((item) => (
-          <li key={item}>
+          <li key={item.label}>
             <Link
-              href="/"
+              href={item.href}
               className="text-sm text-white/60 transition-colors hover:text-primary-400"
             >
-              {item}
+              {item.label}
             </Link>
           </li>
         ))}
@@ -48,11 +42,11 @@ export function Footer() {
           </p>
         </div>
 
-        <FooterColumn title="Company" items={footerCompany} />
-        <FooterColumn title="Job Categories" items={footerCategories} />
+        <FooterColumn title="Platform" items={footerPlatform} />
+        <FooterColumn title="Accounts" items={footerAccounts} />
 
         <div>
-          <p className={columnTitle}>Newsletter</p>
+          <p className={columnTitle}>Stay in the loop</p>
           <p className="mt-5 max-w-sm text-sm leading-6 text-white/60">
             {footerNewsletter}
           </p>
@@ -79,10 +73,7 @@ export function Footer() {
 
       <div className="border-t border-white/10">
         <Container className="flex flex-col items-center justify-between gap-3 py-6 text-xs text-white/50 sm:flex-row">
-          <p>
-            © Copyright, Job Portal, 2026. All rights
-            reserved. Designed by Next Squad.
-          </p>
+          <p>© UniHire, 2026. All rights reserved.</p>
           <div className="flex items-center gap-6">
             <Link href="/" className="underline-offset-4 transition-colors hover:text-white hover:underline">
               Privacy Policy

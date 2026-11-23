@@ -22,6 +22,8 @@ type AuthContextValue = {
   /** Stores the token + user type from `/auth/login`, then hydrates the profile from `/auth/me`. */
   signIn: (accessToken: string, userType: UserType) => Promise<void>;
   signOut: () => void;
+  /** Re-fetches the profile from `/auth/me` — call after an action that changes it server-side (e.g. joining a cohort). */
+  refreshUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -110,6 +112,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    const token = accessToken ?? localStorage.getItem(TOKEN_KEY);
+    if (!token) return;
+    const profile = await fetchCurrentUser(token);
+    setUser(profile);
+    localStorage.setItem(USER_KEY, JSON.stringify(profile));
+  }, [accessToken]);
+
   const signOut = useCallback(() => {
     clearStorage();
     setUser(null);
@@ -126,8 +136,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isRecruiter: user?.user_type === "recruiter",
       signIn,
       signOut,
+      refreshUser,
     }),
-    [user, accessToken, status, signIn, signOut],
+    [user, accessToken, status, signIn, signOut, refreshUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

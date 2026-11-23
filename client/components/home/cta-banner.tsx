@@ -16,15 +16,15 @@ export function CtaBanner() {
           <div className="grid md:grid-cols-2">
             <div className="flex flex-col justify-center p-8 md:p-12 lg:p-14">
               <h2 className="font-display text-3xl font-semibold leading-tight tracking-tight md:text-4xl">
-                Create A Better Future For Yourself
+                Give your cohort a head start
               </h2>
               <p className="mt-4 max-w-md text-sm leading-6 text-white/65 md:text-[15px]">
-                At eu lobortis pretium tincidunt amet lacus ut senectus amet.
-                Blandit a massa elementum id ad suspendisse morbi.
+                Verify your university email, join your graduating batch, and start
+                inviting the recruiters you actually want on campus.
               </p>
               <div className="mt-8">
-                <Button href="/jobs" icon="search">
-                  Search Job
+                <Button href="/signup" icon="arrow-right">
+                  Create your cohort
                 </Button>
               </div>
             </div>

@@ -15,8 +15,15 @@ class StudentCreate(BaseModel):
     uni_id: PydanticObjectId
     phone: str
 
-    _email = field_validator("email")(classmethod(lambda cls, v: _check_email(v)))
-    _phone = field_validator("phone")(classmethod(lambda cls, v: _check_phone(v)))
+    @field_validator("email")
+    @classmethod
+    def _validate_email(cls, value: str) -> str | None:
+        return _check_email(value)
+
+    @field_validator("phone")
+    @classmethod
+    def _validate_phone(cls, value: str) -> str | None:
+        return _check_phone(value)
 
 
 class StudentUpdate(BaseModel):
@@ -24,7 +31,10 @@ class StudentUpdate(BaseModel):
     phone: str | None = None
     placement_status: PlacementStatus | None = None
 
-    _phone = field_validator("phone")(classmethod(lambda cls, v: _check_phone(v)))
+    @field_validator("phone")
+    @classmethod
+    def _validate_phone(cls, value: str | None) -> str | None:
+        return _check_phone(value)
 
 
 class StudentResponse(BaseModel):
@@ -37,3 +47,4 @@ class StudentResponse(BaseModel):
     user_type: UserType
     is_verified: bool
     placement_status: PlacementStatus
+    cohort_id: PydanticObjectId | None = None

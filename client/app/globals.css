@@ -4,53 +4,68 @@
   /* ---------------------------------- */
   /* Typography                         */
   /* ---------------------------------- */
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-poppins), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
 
   /* ---------------------------------- */
-  /* Brand teal (primary actions)       */
+  /* Brand indigo (primary actions)     */
   /* ---------------------------------- */
-  --color-primary-50: #eefaf5;
-  --color-primary-100: #d3f4e7;
-  --color-primary-200: #aae8d2;
-  --color-primary-300: #79d6b6;
-  --color-primary-400: #49c29b;
-  --color-primary-500: #2cb18a;
-  --color-primary-600: #219a75;
-  --color-primary-700: #1c7b5e;
-  --color-primary-800: #19614c;
-  --color-primary-900: #154e3f;
-  --color-primary-950: #0a2d25;
+  --color-primary-50: #f3f1ff;
+  --color-primary-100: #e7e2ff;
+  --color-primary-200: #d1c7ff;
+  --color-primary-300: #b2a0ff;
+  --color-primary-400: #9076fd;
+  --color-primary-500: #6d53ec;
+  --color-primary-600: #5a40d1;
+  --color-primary-700: #4832ab;
+  --color-primary-800: #3a2a87;
+  --color-primary-900: #2f2569;
+  --color-primary-950: #1c1740;
   --color-primary: var(--color-primary-500);
+
+  /* ---------------------------------- */
+  /* Warm amber ("hiring now" accent)   */
+  /* ---------------------------------- */
+  --color-accent-50: #fff8ec;
+  --color-accent-100: #ffecc9;
+  --color-accent-200: #ffd690;
+  --color-accent-300: #ffbd57;
+  --color-accent-400: #ffa52e;
+  --color-accent-500: #f58a0f;
+  --color-accent-600: #d16d08;
+  --color-accent-700: #a9550a;
+  --color-accent-800: #87440f;
+  --color-accent-900: #6f3810;
+  --color-accent: var(--color-accent-500);
 
   /* ---------------------------------- */
   /* Deep navy (dark surfaces)          */
   /* ---------------------------------- */
-  --color-night-50: #f5f7fb;
-  --color-night-100: #e7ecf4;
-  --color-night-200: #c7d2e2;
-  --color-night-300: #9aadc8;
-  --color-night-400: #6a83a6;
-  --color-night-500: #465f84;
-  --color-night-600: #2f4766;
-  --color-night-700: #223453;
-  --color-night-800: #16233c;
-  --color-night-900: #0d1526;
-  --color-night-950: #080e1a;
+  --color-night-50: #f5f5fb;
+  --color-night-100: #e8e8f5;
+  --color-night-200: #c9cae3;
+  --color-night-300: #9b9dc3;
+  --color-night-400: #6d6fa0;
+  --color-night-500: #4b4d80;
+  --color-night-600: #363761;
+  --color-night-700: #272849;
+  --color-night-800: #191a35;
+  --color-night-900: #121328;
+  --color-night-950: #0a0b1c;
 
   /* ---------------------------------- */
   /* Neutrals                           */
   /* ---------------------------------- */
-  --color-heading: #101828;
-  --color-body: #667085;
-  --color-muted: #98a2b3;
-  --color-line: #e7ebf0;
-  --color-surface: #f2f5f7;
+  --color-heading: #15152b;
+  --color-body: #655f7a;
+  --color-muted: #9792a8;
+  --color-line: #e8e4f0;
+  --color-surface: #f6f4fb;
 
   /* ---------------------------------- */
   /* Accents                            */
   /* ---------------------------------- */
-  --color-star: #ffb524;
+  --color-star: #ffa52e;
 
   /* ---------------------------------- */
   /* Shadows                            */
@@ -72,6 +87,8 @@
   /* Search suggestion animations */
   --animate-overlay-in: overlay-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
   --animate-item-in: item-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+  /* Whole-page entrance on first paint / route change */
+  --animate-page-in: page-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
 
   @keyframes overlay-in {
     from {
@@ -92,6 +109,17 @@
     to {
       opacity: 1;
       transform: translateX(0);
+    }
+  }
+
+  @keyframes page-in {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
     }
   }
 }

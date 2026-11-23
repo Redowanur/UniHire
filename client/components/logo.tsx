@@ -22,7 +22,7 @@ export function Logo({
           inverted ? "text-white" : "text-heading",
         )}
       >
-        <span className="text-primary-400">পদার্পণ</span>
+        <span className="text-primary-400">UniHire</span>
       </span>
     </Link>
   );

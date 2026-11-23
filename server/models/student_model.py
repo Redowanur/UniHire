@@ -20,6 +20,7 @@ class Student(Document):
     user_type: UserType = UserType.STUDENT
     is_verified: bool = False
     placement_status: PlacementStatus = PlacementStatus.NOT_PLACED
+    cohort_id: PydanticObjectId | None = None
 
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)

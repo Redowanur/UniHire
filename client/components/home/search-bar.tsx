@@ -1,20 +1,11 @@
 "use client";
 
-import {
-  ArrowRight,
-  BriefcaseBusiness,
-  Building2,
-  Check,
-  ChevronDown,
-  Clock,
-  LoaderCircle,
-  Search,
-} from "lucide-react";
+import { ArrowRight, BriefcaseBusiness, Building2, Clock, LoaderCircle, Search } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { fetchJobSuggestions, type JobSuggestion } from "@/lib/api";
-import { jobCategories } from "@/lib/data";
 import { cn } from "@/lib/utils";
 
 const fieldClass =
@@ -23,116 +14,21 @@ const fieldClass =
 function FieldShell({
   children,
   className,
-  bordered = true,
   ref,
 }: {
   children: React.ReactNode;
   className?: string;
-  bordered?: boolean;
   ref?: React.Ref<HTMLDivElement>;
 }) {
   return (
     <div
       ref={ref}
       className={cn(
-        "flex items-center gap-2 rounded-xl border border-line px-3 transition-all duration-200 focus-within:border-primary-400 focus-within:shadow-[0_0_0_3px_rgb(44_177_138_/_0.12)] md:h-14 md:flex-1 md:rounded-none md:border-0",
-        bordered && "md:border-l md:border-line",
+        "flex items-center gap-2 rounded-xl border border-line px-3 md:h-14 md:flex-1 md:rounded-none md:border-0",
         className,
       )}
     >
       {children}
-    </div>
-  );
-}
-
-function SelectField({
-  name,
-  placeholder,
-  options,
-  label,
-}: {
-  name: string;
-  placeholder: string;
-  options: string[];
-  label: string;
-}) {
-  const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState("");
-  const shellRef = useRef<HTMLDivElement>(null);
-
-  // Close the dropdown when focus leaves the trigger + option list
-  const handleBlur = (event: React.FocusEvent) => {
-    if (!shellRef.current?.contains(event.relatedTarget as Node)) {
-      setOpen(false);
-    }
-  };
-
-  return (
-    <div
-      ref={shellRef}
-      className="relative md:flex-1 md:min-w-0"
-      onBlur={handleBlur}
-    >
-      <FieldShell
-        className={open ? "relative pr-2 border-primary-400" : "relative pr-2"}
-      >
-        {label ? <span className="sr-only">{label}</span> : null}
-        <button
-          type="button"
-          aria-haspopup="listbox"
-          aria-expanded={open}
-          onClick={() => setOpen((value) => !value)}
-          onKeyDown={(event) => {
-            if (event.key === "Escape") setOpen(false);
-          }}
-          className={cn(
-            "h-full w-full cursor-pointer appearance-none bg-transparent text-left text-sm font-medium outline-none",
-            selected ? "text-heading" : "text-body",
-          )}
-        >
-          {selected || placeholder}
-        </button>
-        <ChevronDown
-          className={cn(
-            "pointer-events-none absolute right-3 size-4 text-muted transition-transform duration-200 md:right-4",
-            open && "rotate-180 text-primary-500",
-          )}
-        />
-      </FieldShell>
-
-      {selected ? <input type="hidden" name={name} value={selected} /> : null}
-
-      {open ? (
-        <ul
-          id={`category-${name}`}
-          role="listbox"
-          className="animate-overlay-in absolute left-0 top-[calc(100%+10px)] z-30 w-[min(18rem,calc(100vw-3rem))] origin-top overflow-hidden rounded-2xl border border-line bg-white py-1.5 shadow-2xl shadow-night-950/15"
-        >
-          {options.map((option, index) => (
-            <li key={option}>
-              <button
-                type="button"
-                role="option"
-                aria-selected={selected === option}
-                onClick={() => {
-                  setSelected(option === selected ? "" : option);
-                  setOpen(false);
-                }}
-                className="animate-item-in flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm text-body transition-colors hover:bg-surface hover:text-heading focus-visible:bg-surface focus-visible:text-heading focus-visible:outline-none"
-                style={{ animationDelay: `${index * 25}ms` }}
-              >
-                <span className="truncate">{option}</span>
-                <Check
-                  className={cn(
-                    "size-4 shrink-0 text-primary-500 transition-opacity duration-150",
-                    selected === option ? "opacity-100" : "opacity-0",
-                  )}
-                />
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
     </div>
   );
 }
@@ -157,14 +53,14 @@ function SuggestionList({
       {showLoading ? (
         <div className="flex items-center gap-2.5 px-4 py-4 text-sm text-body">
           <LoaderCircle className="size-4 animate-spin text-primary-500" />
-          Searching jobs...
+          Searching...
         </div>
       ) : showError ? (
         <div className="px-4 py-4 text-sm text-body">
           Couldn&#39;t load suggestions. Please try again.
         </div>
       ) : suggestions.length === 0 ? (
-        <div className="px-4 py-4 text-sm text-body">No jobs found.</div>
+        <div className="px-4 py-4 text-sm text-body">No open roles found.</div>
       ) : (
         <div className="max-h-80 overflow-y-auto overscroll-contain">
           {suggestions.map((job, index) => (
@@ -196,13 +92,13 @@ function SuggestionList({
         </div>
       )}
 
-      <a
-        href="/jobs"
+      <Link
+        href="/hiring"
         className="group flex w-full items-center justify-center gap-1.5 border-t border-line py-3 text-sm font-semibold text-primary-600 transition-colors duration-200 hover:bg-primary-50 hover:text-primary-700"
       >
         View all
         <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5" />
-      </a>
+      </Link>
     </div>
   );
 }
@@ -254,17 +150,16 @@ export function SearchBar({ className }: { className?: string }) {
 
   return (
     <form
-      action="/jobs"
+      action="/hiring"
       method="get"
       className={cn(
-        "mx-auto w-full max-w-4xl rounded-2xl bg-white p-3 text-left shadow-2xl shadow-night-950/30 md:p-2.5",
+        "mx-auto w-full max-w-2xl rounded-2xl bg-white p-3 text-left shadow-2xl shadow-night-950/30 md:p-2.5",
         className,
       )}
     >
       <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:gap-0">
         <FieldShell
           ref={titleFieldRef}
-          bordered={false}
           className="relative md:pl-5 md:pr-4"
         >
           <label htmlFor="hero-job-title" className="sr-only">
@@ -273,9 +168,9 @@ export function SearchBar({ className }: { className?: string }) {
           <Search className="size-4.5 shrink-0 text-muted" />
           <input
             id="hero-job-title"
-            name="title"
+            name="search"
             type="text"
-            placeholder="Job Title, Company"
+            placeholder="Role or company you want on campus"
             autoComplete="off"
             value={query}
             onChange={(event) => {
@@ -317,17 +212,10 @@ export function SearchBar({ className }: { className?: string }) {
           ) : null}
         </FieldShell>
 
-        <SelectField
-          name="category"
-          placeholder="Select Category"
-          label="Category"
-          options={jobCategories}
-        />
-
         <div className="md:p-2">
           <Button type="submit" className="h-11 w-full gap-2 px-7 md:h-12 md:w-auto">
             <Search className="size-4.5" />
-            Search Job
+            Search
           </Button>
         </div>
       </div>

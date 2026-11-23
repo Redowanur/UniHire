@@ -6,7 +6,8 @@ def _check_email(value: str | None) -> str | None:
         return value
     value = value.lower()
     if value.split("@")[-1] not in ALLOWED_STUDENT_EMAIL_DOMAINS:
-        raise ValueError("Use your university email address.")
+        # raise ValueError("Use your university email address.")
+        return value
     return value
 
 

@@ -10,6 +10,12 @@ from models.department_model import Department
 from models.company_model import Company
 from models.recruiter_model import Recruiter
 from models.job_model import Job
+from models.cohort_model import Cohort
+from models.cohort_invite_model import CohortInviteLink
+from models.campus_invite_model import CampusInvite
+from models.screening_test_model import ScreeningTest
+from models.test_submission_model import TestSubmission
+from models.password_reset_model import PasswordResetCode
 
 client: AsyncMongoClient | None = None
 
@@ -22,7 +28,20 @@ async def init_db():
 
     await init_beanie(
         database=client["placement_portal"],
-        document_models=[Student, University, Department, Company, Recruiter, Job],
+        document_models=[
+            Student,
+            University,
+            Department,
+            Company,
+            Recruiter,
+            Job,
+            Cohort,
+            CohortInviteLink,
+            CampusInvite,
+            ScreeningTest,
+            TestSubmission,
+            PasswordResetCode,
+        ],
     )
 
 

@@ -36,13 +36,11 @@ function TabsList({
 
 function TabsTrigger({
   className,
-  value,
   ...props
-}: React.ComponentProps<typeof TabsPrimitive.Trigger> & { value: "student" | "recruiter" }) {
+}: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
   return (
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
-      value={value}
       className={cn(
         "inline-flex flex-1 items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition-all duration-300 outline-none",
         "focus-visible:ring-2 focus-visible:ring-primary-400/50",

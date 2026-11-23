@@ -1,12 +1,15 @@
 from datetime import datetime, timezone
 
 
+def as_aware_utc(dt: datetime) -> datetime:
+    """Dates read back from MongoDB are naive UTC; make them aware so they
+    can be compared against utcnow()."""
+    return dt if dt.tzinfo is not None else dt.replace(tzinfo=timezone.utc)
+
+
 def time_ago(dt: datetime) -> str:
     """Format a datetime as a human-readable 'X units ago' string."""
-    if dt.tzinfo is None:
-        # Dates read back from MongoDB are naive UTC; make them aware
-        # so they can be subtracted from utcnow().
-        dt = dt.replace(tzinfo=timezone.utc)
+    dt = as_aware_utc(dt)
 
     seconds = max(0, int((utcnow() - dt).total_seconds()))
 

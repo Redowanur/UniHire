@@ -105,6 +105,7 @@ async def update_job(job_id: str, job_data: JobUpdateRequest, user: Recruiter = 
     status_code=200,
 )
 async def list_jobs(
+    search: str | None = Query(None, description="Free-text search across title and company name"),
     company_name: str | None = Query(None, description="Filter by company name (partial, case-insensitive)"),
     job_type: JobType | None = Query(None, description="Filter by job type"),
     work_place: WorkPlace | None = Query(None, description="Filter by work place"),
@@ -114,6 +115,16 @@ async def list_jobs(
 ):
     # Build the filter conditions based on provided query params
     filters = []
+    if search:
+        pattern = re.escape(search)
+        filters.append(
+            {
+                "$or": [
+                    {"title": {"$regex": pattern, "$options": "i"}},
+                    {"company_name": {"$regex": pattern, "$options": "i"}},
+                ]
+            }
+        )
     if company_name:
         filters.append({"company_name": {"$regex": re.escape(company_name), "$options": "i"}})
     if job_type:

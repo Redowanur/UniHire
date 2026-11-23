@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { BadgeCheck, CircleAlert } from "lucide-react";
 
@@ -8,43 +8,38 @@ import { verifyEmail } from "@/lib/api";
 
 type State =
   | { kind: "loading" }
-  | { kind: "success"; message: string }
+  | { kind: "success"; message: string; alreadyVerified: boolean }
   | { kind: "error"; message: string };
 
 export default function VerifyEmailPage() {
   const [state, setState] = useState<State>({ kind: "loading" });
-  const requested = useRef(false);
 
   useEffect(() => {
-    // Guard against StrictMode double-invocation double-verifying
-    if (requested.current) return;
-    requested.current = true;
+    let cancelled = false;
+    const token = new URLSearchParams(window.location.search).get("token");
 
-    // Defer verification work out of the effect body
-    const timer = setTimeout(() => {
-      const token = new URLSearchParams(window.location.search).get("token");
-      if (!token) {
+    const result = token
+      ? verifyEmail(token)
+      : Promise.reject<Awaited<ReturnType<typeof verifyEmail>>>(
+          new Error("No verification token found in the link."),
+        );
+
+    result
+      .then((data) => {
+        if (cancelled) return;
+        setState({ kind: "success", message: data.message, alreadyVerified: data.already_verified });
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
         setState({
           kind: "error",
-          message: "No verification token found in the link.",
+          message: err instanceof Error ? err.message : "Something went wrong. Please try again.",
         });
-        return;
-      }
+      });
 
-      verifyEmail(token)
-        .then((data) => setState({ kind: "success", message: data.message }))
-        .catch((err: unknown) =>
-          setState({
-            kind: "error",
-            message:
-              err instanceof Error
-                ? err.message
-                : "Something went wrong. Please try again.",
-          }),
-        );
-    }, 0);
-
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
@@ -62,7 +57,7 @@ export default function VerifyEmailPage() {
                 <BadgeCheck className="size-7" />
               </span>
               <h1 className="font-display text-xl font-bold text-heading">
-                Email verified
+                {state.alreadyVerified ? "Already verified" : "Email verified"}
               </h1>
               <p className="text-sm text-body">{state.message}</p>
               <Link

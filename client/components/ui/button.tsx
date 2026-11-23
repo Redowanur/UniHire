@@ -32,6 +32,8 @@ type ButtonProps = {
   icon?: IconName;
   className?: string;
   type?: "button" | "submit";
+  onClick?: () => void;
+  disabled?: boolean;
 };
 
 export function Button({
@@ -42,6 +44,8 @@ export function Button({
   icon,
   className,
   type = "button",
+  onClick,
+  disabled,
 }: ButtonProps) {
   const classes = cn(base, variants[variant], sizes[size], className);
   const content = (
@@ -53,14 +57,14 @@ export function Button({
 
   if (href) {
     return (
-      <Link href={href} className={classes}>
+      <Link href={href} onClick={onClick} className={classes}>
         {content}
       </Link>
     );
   }
 
   return (
-    <button type={type} className={classes}>
+    <button type={type} onClick={onClick} disabled={disabled} className={classes}>
       {content}
     </button>
   );

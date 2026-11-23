@@ -1,39 +1,39 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
-import { Geist, Poppins } from "next/font/google";
+import { Outfit } from "next/font/google";
+import { Toaster } from "sonner";
 import "./globals.css";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { PageTransition } from "@/components/layout/page-transition";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const outfit = Outfit({
+  variable: "--font-outfit",
   subsets: ["latin"],
-});
-
-const poppins = Poppins({
-  variable: "--font-poppins",
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "Job Portal | Find Your Dream Job Today",
+  title: "UniHire | Bring recruiters to your campus",
   description:
-    "Connecting talent with opportunity. Browse recent jobs, explore categories and land your next role on Job Portal.",
+    "UniHire connects graduating cohorts with recruiters — join your cohort, invite companies to campus, and shortlist with screening tests.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${poppins.variable} h-full antialiased`}
-    >
+    <html lang="en" className={`${outfit.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
         <AuthProvider>
           <Header />
-          <main className="flex-1">{children}</main>
+          <main className="flex-1">
+            <Suspense fallback={children}>
+              <PageTransition>{children}</PageTransition>
+            </Suspense>
+          </main>
           <Footer />
         </AuthProvider>
+        <Toaster position="top-right" richColors closeButton />
       </body>
     </html>
   );

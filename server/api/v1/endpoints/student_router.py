@@ -8,7 +8,6 @@ from schemas.student_schema import StudentCreate, StudentResponse, StudentUpdate
 from core.deps import get_current_user
 from enums.user_enums import UserType
 from enums.student_enums import PlacementStatus
-from models.university_model import University
 from models.department_model import Department
 
 router = APIRouter(prefix="/students", tags=["Student Management"])
@@ -58,7 +57,8 @@ async def create_student(student_data: StudentCreate):
         phone=student.phone,
         user_type=student.user_type,
         is_verified= False,
-        placement_status=PlacementStatus.NOT_PLACED
+        placement_status=PlacementStatus.NOT_PLACED,
+        cohort_id=student.cohort_id,
     )
 
 
@@ -85,6 +85,7 @@ async def get_student(student_id: PydanticObjectId):
         user_type=student.user_type,
         is_verified=student.is_verified,
         placement_status=student.placement_status,
+        cohort_id=student.cohort_id,
     )
 
 
@@ -135,4 +136,5 @@ async def update_student(
         user_type=student.user_type,
         is_verified=student.is_verified,
         placement_status=student.placement_status,
+        cohort_id=student.cohort_id,
     )

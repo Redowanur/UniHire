@@ -41,6 +41,29 @@ def build_verification_email(name: str, user_type: str, verify_link: str) -> str
     """
 
 
+def build_password_reset_email(name: str, code: str, expire_minutes: int) -> str:
+    return f"""
+    <div style="font-family: Arial, Helvetica, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
+      <h2 style="color: #0d1526; margin: 0 0 8px;">Reset your password</h2>
+      <p style="color: #667085; font-size: 15px; line-height: 1.6;">
+        Hi {name},<br/><br/>
+        Use the code below to reset your UniHire password. It expires in
+        {expire_minutes} minutes.
+      </p>
+      <p style="text-align: center; margin: 28px 0;">
+        <span style="display: inline-block; font-size: 28px; font-weight: bold;
+                     letter-spacing: 8px; background-color: #f6f4fb; color: #15152b;
+                     padding: 14px 28px; border-radius: 12px;">
+          {code}
+        </span>
+      </p>
+      <p style="color: #98a2b3; font-size: 12px;">
+        If you didn't request a password reset, you can safely ignore this email.
+      </p>
+    </div>
+    """
+
+
 async def send_email(to: str, subject: str, html: str) -> None:
     message = EmailMessage()
     message["From"] = EMAIL_FROM
@@ -78,4 +101,12 @@ async def send_verification_email(to: str, name: str, user_type: str, token: str
         to,
         "Verify your Job Portal account",
         build_verification_email(name, user_type, verify_link),
+    )
+
+
+async def send_password_reset_email(to: str, name: str, code: str, expire_minutes: int) -> None:
+    await send_email(
+        to,
+        "Your UniHire password reset code",
+        build_password_reset_email(name, code, expire_minutes),
     )
