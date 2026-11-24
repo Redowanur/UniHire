@@ -1,11 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import NextLink from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { LoaderCircle, Link2, TriangleAlert } from "lucide-react";
+import { Link2, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 
+import { Badge } from "@/components/ui/badge";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/hooks/use-auth";
 import { joinViaInviteLink, previewInviteLink, type InviteLinkPreview } from "@/lib/api";
 
@@ -14,7 +19,7 @@ type State =
   | { kind: "ready"; preview: InviteLinkPreview }
   | { kind: "error"; message: string };
 
-export default function JoinCohortPage() {
+function JoinCohortPageContent() {
   const params = useParams<{ token: string }>();
   const router = useRouter();
   const { user, status, accessToken, refreshUser } = useAuth();
@@ -46,74 +51,80 @@ export default function JoinCohortPage() {
   }
 
   return (
-    <div className="bg-surface/60 py-16">
-      <div className="mx-auto w-full max-w-md px-4">
-        <div className="animate-overlay-in rounded-2xl border border-line bg-white p-8 text-center shadow-card">
-          {state.kind === "loading" ? (
-            <>
-              <LoaderCircle className="mx-auto size-8 animate-spin text-primary-500" />
-              <p className="mt-4 text-sm text-body">Loading invite…</p>
-            </>
-          ) : state.kind === "error" ? (
-            <>
-              <span className="mx-auto grid size-14 place-items-center rounded-full bg-red-50 text-red-500">
-                <TriangleAlert className="size-7" />
-              </span>
-              <h1 className="mt-4 font-display text-xl font-bold text-heading">Invite not found</h1>
-              <p className="mt-2 text-sm text-body">{state.message}</p>
-            </>
-          ) : (
-            <>
-              <span className="mx-auto grid size-14 place-items-center rounded-full bg-primary-50 text-primary-500">
-                <Link2 className="size-7" />
-              </span>
-              <h1 className="mt-4 font-display text-xl font-bold text-heading">
-                {state.preview.cohort_name}
-              </h1>
-              <p className="mt-1 text-sm text-body">
-                {state.preview.university_name} · {state.preview.dept_name} · Batch{" "}
-                {state.preview.batch_year}
-              </p>
-              <p className="mt-1 text-xs text-muted">
-                {state.preview.member_count} member{state.preview.member_count === 1 ? "" : "s"}
-              </p>
-
-              {!state.preview.is_joinable ? (
-                <p className="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-sm font-medium text-amber-700">
-                  This invite link is no longer active.
+    <div className="bg-secondary/40 px-4 py-16">
+      <div className="mx-auto w-full max-w-md">
+        <Card className="animate-fade-up shadow-xl shadow-primary/5">
+          <CardContent className="text-center">
+            {state.kind === "loading" ? (
+              <div className="flex flex-col items-center gap-3">
+                <Skeleton className="size-14 rounded-full" />
+                <Skeleton className="h-6 w-2/3" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
+            ) : state.kind === "error" ? (
+              <>
+                <span className="mx-auto grid size-14 place-items-center rounded-full bg-destructive/10 text-destructive">
+                  <TriangleAlert className="size-7" />
+                </span>
+                <h1 className="mt-4 text-xl font-semibold">Invite not found</h1>
+                <p className="mt-2 text-sm text-muted-foreground">{state.message}</p>
+              </>
+            ) : (
+              <>
+                <span className="mx-auto grid size-14 place-items-center rounded-full bg-secondary text-primary">
+                  <Link2 className="size-7" />
+                </span>
+                <h1 className="mt-4 text-xl font-semibold">{state.preview.cohort_name}</h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {state.preview.university_name} · {state.preview.dept_name} · Batch{" "}
+                  {state.preview.batch_year}
                 </p>
-              ) : status === "loading" ? (
-                <div className="mt-6 h-11" />
-              ) : !user ? (
-                <NextLink
-                  href={`/signup?next=/join/${params.token}`}
-                  className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-xl bg-primary-500 px-6 text-sm font-semibold text-white transition-colors hover:bg-primary-600"
-                >
-                  Sign up to join
-                </NextLink>
-              ) : user.user_type !== "student" ? (
-                <p className="mt-6 text-sm text-body">Only students can join a cohort.</p>
-              ) : !user.is_verified ? (
-                <p className="mt-6 text-sm text-body">Verify your email before joining a cohort.</p>
-              ) : user.cohort_id ? (
-                <p className="mt-6 text-sm text-body">You&apos;re already part of a cohort.</p>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    disabled={joining}
-                    onClick={handleJoin}
-                    className="mt-6 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary-500 text-sm font-semibold text-white transition-colors hover:bg-primary-600 disabled:opacity-60"
-                  >
-                    {joining ? <LoaderCircle className="size-4 animate-spin" /> : null}
-                    Join this cohort
-                  </button>
-                </>
-              )}
-            </>
-          )}
-        </div>
+                <Badge variant="secondary" className="mt-3">
+                  {state.preview.member_count} member{state.preview.member_count === 1 ? "" : "s"}
+                </Badge>
+
+                <div className="mt-6">
+                  {!state.preview.is_joinable ? (
+                    <p className="rounded-xl bg-destructive/10 px-3.5 py-2.5 text-sm font-medium text-destructive">
+                      This invite link is no longer active.
+                    </p>
+                  ) : status === "loading" ? (
+                    <Skeleton className="h-12 w-full" />
+                  ) : !user ? (
+                    <NextLink
+                      href={`/signup?next=/join/${params.token}`}
+                      className={buttonVariants({ size: "lg", className: "w-full" })}
+                    >
+                      Sign up to join
+                    </NextLink>
+                  ) : user.user_type !== "student" ? (
+                    <p className="text-sm text-muted-foreground">Only students can join a cohort.</p>
+                  ) : !user.is_verified ? (
+                    <p className="text-sm text-muted-foreground">
+                      Verify your email before joining a cohort.
+                    </p>
+                  ) : user.cohort_id ? (
+                    <p className="text-sm text-muted-foreground">You&apos;re already part of a cohort.</p>
+                  ) : (
+                    <Button size="lg" disabled={joining} onClick={handleJoin} className="w-full gap-2">
+                      {joining ? <Spinner /> : null}
+                      Join this cohort
+                    </Button>
+                  )}
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
+  );
+}
+
+export default function JoinCohortPage() {
+  return (
+    <Suspense fallback={null}>
+      <JoinCohortPageContent />
+    </Suspense>
   );
 }

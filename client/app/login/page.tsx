@@ -10,8 +10,8 @@ import {
   FormField,
   SubmitButton,
   SwitchAuthLink,
-  inputClass,
 } from "@/components/auth/form-fields";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
 import { login } from "@/lib/api";
 
@@ -49,7 +49,7 @@ export default function LoginPage() {
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <FormField label="Email" htmlFor="login-email">
-          <input
+          <Input
             id="login-email"
             type="email"
             required
@@ -57,12 +57,11 @@ export default function LoginPage() {
             placeholder="you@example.com"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className={inputClass}
           />
         </FormField>
 
         <FormField label="Password" htmlFor="login-password">
-          <input
+          <Input
             id="login-password"
             type="password"
             required
@@ -70,14 +69,13 @@ export default function LoginPage() {
             placeholder="••••••••"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className={inputClass}
           />
         </FormField>
 
         <div className="-mt-2 text-right">
           <Link
             href="/forgot-password"
-            className="text-sm font-semibold text-primary-600 transition-colors hover:text-primary-700"
+            className="text-sm font-semibold text-primary transition-colors hover:text-primary/80"
           >
             Forgot password?
           </Link>

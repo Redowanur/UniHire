@@ -3,10 +3,46 @@
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Check, Copy, LoaderCircle, Plus, Users, X } from "lucide-react";
+import {
+  ArrowRight,
+  Building2,
+  CalendarIcon,
+  Check,
+  Copy,
+  FileText,
+  Link2,
+  Plus,
+  Users,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
+import { InviteStatusBadge, PlacementBadge } from "@/components/status-badge";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Card, CardContent } from "@/components/ui/card";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 import {
   createInviteLink,
@@ -20,33 +56,23 @@ import {
   type InviteLink,
   type ScreeningTestSummary,
 } from "@/lib/api";
-import { cn } from "@/lib/utils";
 
-const placementTone: Record<string, string> = {
-  not_placed: "bg-surface text-body",
-  in_process: "bg-primary-50 text-primary-600",
-  interview: "bg-accent-50 text-accent-700",
-  placed: "bg-emerald-50 text-emerald-600",
-};
+const expiryItems = [
+  { value: "never", label: "Never expires" },
+  { value: "1", label: "In 1 hour" },
+  { value: "24", label: "In 24 hours" },
+  { value: "168", label: "In 7 days" },
+  { value: "custom", label: "Pick a date…" },
+];
 
-const placementLabel: Record<string, string> = {
-  not_placed: "Not placed",
-  in_process: "In process",
-  interview: "Interviewing",
-  placed: "Placed",
-};
-
-const inviteTone: Record<CampusInvite["status"], string> = {
-  pending: "bg-accent-50 text-accent-700",
-  accepted: "bg-emerald-50 text-emerald-600",
-  rejected: "bg-red-50 text-red-500",
-};
-
-function Pill({ tone, children }: { tone: string; children: React.ReactNode }) {
+function EmptyState({ icon: Icon, children }: { icon: typeof Users; children: React.ReactNode }) {
   return (
-    <span className={cn("inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold", tone)}>
-      {children}
-    </span>
+    <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed bg-card px-4 py-12 text-center text-sm text-muted-foreground">
+      <span className="grid size-11 place-items-center rounded-full bg-muted">
+        <Icon className="size-5" />
+      </span>
+      <p className="max-w-sm">{children}</p>
+    </div>
   );
 }
 
@@ -60,7 +86,8 @@ export default function CohortDashboardPage() {
   const [tests, setTests] = useState<ScreeningTestSummary[]>([]);
   const [loadFailed, setLoadFailed] = useState(false);
   const [creatingLink, setCreatingLink] = useState(false);
-  const [expiresHours, setExpiresHours] = useState("");
+  const [expiry, setExpiry] = useState("never");
+  const [expiryDate, setExpiryDate] = useState<Date | undefined>();
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
   useEffect(() => {
@@ -94,13 +121,24 @@ export default function CohortDashboardPage() {
     if (!accessToken || !user?.cohort_id) return;
     setCreatingLink(true);
     try {
-      const link = await createInviteLink(
-        user.cohort_id,
-        expiresHours ? Number(expiresHours) : null,
-        accessToken,
-      );
+      let hours: number | null = null;
+      if (expiry === "custom") {
+        if (!expiryDate) {
+          toast.error("Pick an expiry date first.");
+          setCreatingLink(false);
+          return;
+        }
+        const end = new Date(expiryDate);
+        end.setHours(23, 59, 0, 0);
+        hours = Math.max(1, Math.ceil((end.getTime() - Date.now()) / 3_600_000));
+      } else if (expiry !== "never") {
+        hours = Number(expiry);
+      }
+      const link = await createInviteLink(user.cohort_id, hours, accessToken);
       setLinks((current) => [link, ...current]);
-      setExpiresHours("");
+      toast.success("Invite link created");
+      setExpiry("never");
+      setExpiryDate(undefined);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Couldn't create an invite link.");
     } finally {
@@ -113,6 +151,7 @@ export default function CohortDashboardPage() {
     try {
       await revokeInviteLink(token, accessToken);
       setLinks((current) => current.map((l) => (l.token === token ? { ...l, is_active: false } : l)));
+      toast.success("Link revoked");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Couldn't revoke that link.");
     }
@@ -122,111 +161,123 @@ export default function CohortDashboardPage() {
     const url = `${window.location.origin}/join/${token}`;
     navigator.clipboard?.writeText(url).then(() => {
       setCopiedToken(token);
+      toast.success("Link copied");
       setTimeout(() => setCopiedToken(null), 1500);
     });
   }
 
-  if (status === "loading" || !user || (user.user_type === "student" && !user.cohort_id)) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <LoaderCircle className="size-6 animate-spin text-primary-500" />
-      </div>
-    );
-  }
-
   if (loadFailed) {
     return (
-      <p className="mx-auto max-w-lg px-4 py-20 text-center text-sm text-body">
+      <p className="mx-auto max-w-lg px-4 py-20 text-center text-sm text-muted-foreground">
         Couldn&apos;t load your cohort. Please refresh to try again.
       </p>
     );
   }
 
-  if (!cohort) {
+  if (status === "loading" || !user || (user.user_type === "student" && !user.cohort_id) || !cohort) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <LoaderCircle className="size-6 animate-spin text-primary-500" />
+      <div className="mx-auto w-full max-w-4xl space-y-4 px-4 py-12">
+        <Skeleton className="h-28 w-full rounded-2xl" />
+        <Skeleton className="h-11 w-full" />
+        <Skeleton className="h-64 w-full rounded-2xl" />
       </div>
     );
   }
 
   return (
-    <div className="bg-surface/60 py-10 md:py-14">
+    <div className="bg-secondary/40 py-8 md:py-14">
       <div className="mx-auto w-full max-w-4xl px-4">
-        <div className="rounded-2xl border border-line bg-white p-6 shadow-card">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h1 className="font-display text-2xl font-bold text-heading">{cohort.name}</h1>
-              <p className="mt-1 text-sm text-body">
-                {cohort.university_name} · {cohort.dept_name} · Batch {cohort.batch_year}
-              </p>
+        <Card className="animate-fade-up overflow-hidden">
+          <CardContent>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h1 className="text-2xl font-semibold tracking-tight">{cohort.name}</h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {cohort.university_name} · {cohort.dept_name} · Batch {cohort.batch_year}
+                </p>
+              </div>
+              <Badge variant="secondary" className="h-7 gap-1.5 px-3">
+                <Users />
+                {cohort.member_count} member{cohort.member_count === 1 ? "" : "s"}
+              </Badge>
             </div>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-50 px-3 py-1.5 text-xs font-semibold text-primary-600">
-              <Users className="size-3.5" />
-              {cohort.member_count} member{cohort.member_count === 1 ? "" : "s"}
-            </span>
-          </div>
-          {cohort.description ? <p className="mt-3 text-sm text-body">{cohort.description}</p> : null}
-        </div>
+            {cohort.description ? (
+              <p className="mt-3 text-sm text-muted-foreground">{cohort.description}</p>
+            ) : null}
+          </CardContent>
+        </Card>
 
-        <div className="mt-6">
+        <div className="animate-fade-up mt-6" style={{ animationDelay: "100ms" }}>
           <Tabs defaultValue="overview">
-            <TabsList aria-label="Cohort sections">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="companies">Companies</TabsTrigger>
-              <TabsTrigger value="tests">Tests</TabsTrigger>
-              <TabsTrigger value="links">Invite links</TabsTrigger>
-            </TabsList>
+            <ScrollArea className="w-full">
+              <TabsList aria-label="Cohort sections" className="group-data-horizontal/tabs:h-11">
+                <TabsTrigger value="overview" className="px-4">Overview</TabsTrigger>
+                <TabsTrigger value="companies" className="px-4">Companies</TabsTrigger>
+                <TabsTrigger value="tests" className="px-4">Tests</TabsTrigger>
+                <TabsTrigger value="links" className="px-4">Invite links</TabsTrigger>
+              </TabsList>
+            </ScrollArea>
 
-            <TabsContent value="overview" className="animate-overlay-in">
-              <ul className="space-y-2">
-                {(cohort.members ?? []).map((member) => (
-                  <li
-                    key={member.id}
-                    className="flex items-center justify-between gap-4 rounded-xl border border-line bg-white px-4 py-3"
-                  >
-                    <div>
-                      <p className="text-sm font-semibold text-heading">
-                        {member.name} {member.id === user.id ? <span className="text-muted">(you)</span> : null}
-                      </p>
-                      <p className="text-xs text-muted">Reg. {member.reg_no}</p>
-                    </div>
-                    <Pill tone={placementTone[member.placement_status]}>
-                      {placementLabel[member.placement_status]}
-                    </Pill>
-                  </li>
-                ))}
-              </ul>
+            <TabsContent value="overview" className="animate-overlay-in mt-2">
+              <Card className="py-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="pl-4">Student</TableHead>
+                      <TableHead className="hidden sm:table-cell">Reg. no.</TableHead>
+                      <TableHead className="pr-4 text-right">Placement</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(cohort.members ?? []).map((member) => (
+                      <TableRow key={member.id}>
+                        <TableCell className="py-3 pl-4 font-medium">
+                          {member.name}
+                          {member.id === user.id ? (
+                            <span className="ml-1.5 text-muted-foreground">(you)</span>
+                          ) : null}
+                          <span className="block text-xs font-normal text-muted-foreground sm:hidden">
+                            Reg. {member.reg_no}
+                          </span>
+                        </TableCell>
+                        <TableCell className="hidden text-muted-foreground sm:table-cell">
+                          {member.reg_no}
+                        </TableCell>
+                        <TableCell className="pr-4 text-right">
+                          <PlacementBadge status={member.placement_status} />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Card>
             </TabsContent>
 
-            <TabsContent value="companies" className="animate-overlay-in">
+            <TabsContent value="companies" className="animate-overlay-in mt-2">
               {invites.length === 0 ? (
-                <p className="rounded-xl border border-dashed border-line bg-white px-4 py-10 text-center text-sm text-body">
+                <EmptyState icon={Building2}>
                   No companies invited yet. Head to{" "}
-                  <Link href="/hiring" className="font-semibold text-primary-600">
+                  <Link href="/hiring" className="font-semibold text-primary">
                     who&apos;s hiring
                   </Link>{" "}
                   to send your first invite.
-                </p>
+                </EmptyState>
               ) : (
                 <ul className="space-y-2">
                   {invites.map((invite) => (
-                    <li
-                      key={invite.id}
-                      className="rounded-xl border border-line bg-white px-4 py-3"
-                    >
+                    <li key={invite.id} className="rounded-xl border bg-card px-4 py-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                          <p className="text-sm font-semibold text-heading">{invite.company_name}</p>
-                          <p className="text-xs text-muted">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold">{invite.company_name}</p>
+                          <p className="text-xs text-muted-foreground">
                             {invite.job_title ?? "General outreach"} · invited by{" "}
                             {invite.invited_by === user.id ? "you" : "a cohort member"}
                           </p>
                         </div>
-                        <Pill tone={inviteTone[invite.status]}>{invite.status}</Pill>
+                        <InviteStatusBadge status={invite.status} />
                       </div>
                       {invite.message ? (
-                        <p className="mt-2 text-xs text-body">&ldquo;{invite.message}&rdquo;</p>
+                        <p className="mt-2 text-xs text-muted-foreground">&ldquo;{invite.message}&rdquo;</p>
                       ) : null}
                     </li>
                   ))}
@@ -234,27 +285,27 @@ export default function CohortDashboardPage() {
               )}
             </TabsContent>
 
-            <TabsContent value="tests" className="animate-overlay-in">
+            <TabsContent value="tests" className="animate-overlay-in mt-2">
               {tests.length === 0 ? (
-                <p className="rounded-xl border border-dashed border-line bg-white px-4 py-10 text-center text-sm text-body">
+                <EmptyState icon={FileText}>
                   No screening tests yet. They&apos;ll show up here once a recruiter you invited
                   publishes one.
-                </p>
+                </EmptyState>
               ) : (
                 <ul className="space-y-2">
                   {tests.map((test) => (
                     <li key={test.id}>
                       <Link
                         href={`/tests/${test.id}`}
-                        className="group flex items-center justify-between gap-3 rounded-xl border border-line bg-white px-4 py-3.5 transition-colors hover:border-primary-300"
+                        className="group flex items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3.5 transition-colors hover:border-primary/40"
                       >
-                        <div>
-                          <p className="text-sm font-semibold text-heading">{test.title}</p>
-                          <p className="text-xs text-muted">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold">{test.title}</p>
+                          <p className="text-xs text-muted-foreground">
                             {test.company_name} · {test.question_count} questions
                           </p>
                         </div>
-                        <ArrowRight className="size-4 shrink-0 text-muted transition-colors group-hover:text-primary-600" />
+                        <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
                       </Link>
                     </li>
                   ))}
@@ -262,68 +313,100 @@ export default function CohortDashboardPage() {
               )}
             </TabsContent>
 
-            <TabsContent value="links" className="animate-overlay-in">
-              <form onSubmit={handleCreateLink} className="flex flex-wrap items-end gap-3 rounded-xl border border-line bg-white p-4">
-                <div className="flex-1">
-                  <label className="text-xs font-semibold text-heading">Expires in (hours, optional)</label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={expiresHours}
-                    onChange={(event) => setExpiresHours(event.target.value)}
-                    placeholder="Never expires"
-                    className="mt-1 h-10 w-full rounded-lg border border-line px-3 text-sm outline-none focus:border-primary-400"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={creatingLink}
-                  className="flex h-10 items-center gap-1.5 rounded-full bg-primary-500 px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-600 disabled:opacity-60"
-                >
-                  {creatingLink ? <LoaderCircle className="size-4 animate-spin" /> : <Plus className="size-4" />}
-                  New link
-                </button>
-              </form>
-
-              <ul className="mt-4 space-y-2">
-                {links.map((link) => (
-                  <li
-                    key={link.token}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-white px-4 py-3"
+            <TabsContent value="links" className="animate-overlay-in mt-2">
+              <Card>
+                <CardContent>
+                  <form
+                    onSubmit={handleCreateLink}
+                    className="flex flex-col gap-3 sm:flex-row sm:items-end"
                   >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-mono text-heading">/join/{link.token}</p>
-                      <p className="text-xs text-muted">
-                        {link.is_active
-                          ? link.expires_at
-                            ? `Expires ${new Date(link.expires_at).toLocaleString()}`
-                            : "Never expires"
-                          : "Revoked"}
-                      </p>
+                    <div className="flex-1 space-y-1.5">
+                      <p className="text-sm font-semibold">Link expiry</p>
+                      <Select value={expiry} onValueChange={(v) => setExpiry(v ?? "never")} items={expiryItems}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {expiryItems.map((item) => (
+                            <SelectItem key={item.value} value={item.value}>
+                              {item.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleCopy(link.token)}
-                        className="flex h-8 items-center gap-1.5 rounded-full border border-line px-3 text-xs font-semibold text-heading transition-colors hover:border-primary-400"
-                      >
-                        {copiedToken === link.token ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-                        {copiedToken === link.token ? "Copied" : "Copy"}
-                      </button>
-                      {link.is_active ? (
-                        <button
-                          type="button"
-                          onClick={() => handleRevoke(link.token)}
-                          className="flex h-8 items-center gap-1.5 rounded-full border border-line px-3 text-xs font-semibold text-red-500 transition-colors hover:border-red-300"
+                    {expiry === "custom" ? (
+                      <Popover>
+                        <PopoverTrigger
+                          render={<Button variant="outline" className="justify-start gap-2 font-normal" />}
                         >
-                          <X className="size-3.5" />
-                          Revoke
-                        </button>
-                      ) : null}
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                          <CalendarIcon />
+                          {expiryDate ? expiryDate.toLocaleDateString() : "Select date"}
+                        </PopoverTrigger>
+                        <PopoverContent align="start" className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={expiryDate}
+                            onSelect={setExpiryDate}
+                            disabled={{ before: new Date() }}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    ) : null}
+                    <Button type="submit" disabled={creatingLink} className="gap-2">
+                      {creatingLink ? <Spinner /> : <Plus />}
+                      New link
+                    </Button>
+                  </form>
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    Anyone with the link can join your cohort until it expires or you revoke it.
+                  </p>
+                </CardContent>
+              </Card>
+
+              {links.length === 0 ? (
+                <div className="mt-4">
+                  <EmptyState icon={Link2}>No invite links yet. Create one to bring classmates in.</EmptyState>
+                </div>
+              ) : (
+                <ul className="mt-4 space-y-2">
+                  {links.map((link) => (
+                    <li
+                      key={link.token}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-mono text-sm">/join/{link.token}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {link.is_active
+                            ? link.expires_at
+                              ? `Expires ${new Date(link.expires_at).toLocaleString()}`
+                              : "Never expires"
+                            : "Revoked"}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Tooltip>
+                          <TooltipTrigger
+                            render={
+                              <Button variant="outline" size="sm" onClick={() => handleCopy(link.token)} />
+                            }
+                          >
+                            {copiedToken === link.token ? <Check /> : <Copy />}
+                            {copiedToken === link.token ? "Copied" : "Copy"}
+                          </TooltipTrigger>
+                          <TooltipContent>Copy the shareable join link</TooltipContent>
+                        </Tooltip>
+                        {link.is_active ? (
+                          <Button variant="destructive" size="sm" onClick={() => handleRevoke(link.token)}>
+                            <X /> Revoke
+                          </Button>
+                        ) : null}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </TabsContent>
           </Tabs>
         </div>

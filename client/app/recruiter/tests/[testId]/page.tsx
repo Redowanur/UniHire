@@ -1,9 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { LoaderCircle, Star } from "lucide-react";
+import { Inbox, Star } from "lucide-react";
+import { toast } from "sonner";
 
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useAuth } from "@/hooks/use-auth";
 import {
   fetchScreeningTest,
@@ -14,7 +28,7 @@ import {
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-export default function RecruiterTestSubmissionsPage() {
+function RecruiterTestSubmissionsPageContent() {
   const params = useParams<{ testId: string }>();
   const router = useRouter();
   const { user, status, accessToken } = useAuth();
@@ -36,7 +50,11 @@ export default function RecruiterTestSubmissionsPage() {
         setTest(t);
         setRows(s);
       })
-      .catch((err) => setError(err instanceof Error ? err.message : "Couldn't load this test."));
+      .catch((err) => {
+        const message = err instanceof Error ? err.message : "Couldn't load this test.";
+        toast.error(message);
+        setError(message);
+      });
   }, [accessToken, user?.user_type, params.testId]);
 
   async function handleToggle(row: SubmissionRow) {
@@ -45,68 +63,100 @@ export default function RecruiterTestSubmissionsPage() {
     try {
       const updated = await toggleShortlist(params.testId, row.student_id, !row.shortlisted, accessToken);
       setRows((current) => current?.map((r) => (r.student_id === updated.student_id ? updated : r)) ?? null);
+      toast.success(updated.shortlisted ? `${row.student_name} shortlisted` : `${row.student_name} removed from shortlist`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't update shortlist status.");
+      toast.error(err instanceof Error ? err.message : "Couldn't update shortlist status.");
     } finally {
       setPendingId(null);
     }
   }
 
+  if (error) {
+    return <p className="mx-auto max-w-lg px-4 py-20 text-center text-sm text-muted-foreground">{error}</p>;
+  }
+
   if (status === "loading" || !user || !test || rows === null) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <LoaderCircle className="size-6 animate-spin text-primary-500" />
+      <div className="mx-auto w-full max-w-3xl space-y-4 px-4 py-12">
+        <Skeleton className="h-9 w-1/2" />
+        <Skeleton className="h-64 w-full rounded-2xl" />
       </div>
     );
   }
 
-  if (error) {
-    return <p className="mx-auto max-w-lg px-4 py-20 text-center text-sm text-body">{error}</p>;
-  }
-
   return (
-    <div className="bg-surface/60 py-10 md:py-14">
+    <div className="bg-secondary/40 py-8 md:py-14">
       <div className="mx-auto w-full max-w-3xl px-4">
-        <h1 className="font-display text-2xl font-bold text-heading">{test.title}</h1>
-        {test.description ? <p className="mt-1 text-sm text-body">{test.description}</p> : null}
-        <p className="mt-1 text-xs text-muted">{test.questions.length} questions</p>
+        <div className="animate-fade-up">
+          <h1 className="text-2xl font-semibold tracking-tight">{test.title}</h1>
+          {test.description ? <p className="mt-1 text-sm text-muted-foreground">{test.description}</p> : null}
+          <Badge variant="secondary" className="mt-3">
+            {test.questions.length} questions
+          </Badge>
+        </div>
 
         {rows.length === 0 ? (
-          <p className="mt-6 rounded-xl border border-dashed border-line bg-white px-4 py-10 text-center text-sm text-body">
+          <div className="mt-6 flex flex-col items-center gap-3 rounded-xl border border-dashed bg-card px-4 py-12 text-center text-sm text-muted-foreground">
+            <span className="grid size-11 place-items-center rounded-full bg-muted">
+              <Inbox className="size-5" />
+            </span>
             No submissions yet.
-          </p>
+          </div>
         ) : (
-          <ul className="mt-6 space-y-2">
-            {rows.map((row) => (
-              <li
-                key={row.student_id}
-                className="flex items-center justify-between gap-4 rounded-xl border border-line bg-white px-4 py-3.5"
-              >
-                <div>
-                  <p className="text-sm font-semibold text-heading">{row.student_name}</p>
-                  <p className="text-xs text-muted">
-                    Reg. {row.reg_no} · Score {row.score}/{row.total}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  disabled={pendingId === row.student_id}
-                  onClick={() => handleToggle(row)}
-                  className={cn(
-                    "flex h-9 items-center gap-1.5 rounded-full border px-4 text-xs font-semibold transition-colors disabled:opacity-60",
-                    row.shortlisted
-                      ? "border-primary-300 bg-primary-50 text-primary-700"
-                      : "border-line text-heading hover:border-primary-300",
-                  )}
-                >
-                  <Star className={cn("size-3.5", row.shortlisted && "fill-current")} />
-                  {row.shortlisted ? "Shortlisted" : "Shortlist"}
-                </button>
-              </li>
-            ))}
-          </ul>
+          <Card className="animate-fade-up mt-6 py-0" style={{ animationDelay: "100ms" }}>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="pl-4">Student</TableHead>
+                  <TableHead>Score</TableHead>
+                  <TableHead className="pr-4 text-right">Shortlist</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((row) => (
+                  <TableRow key={row.student_id}>
+                    <TableCell className="py-3 pl-4 font-medium">
+                      {row.student_name}
+                      <span className="block text-xs font-normal text-muted-foreground">
+                        Reg. {row.reg_no}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="tabular-nums">
+                        {row.score}/{row.total}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="pr-4 text-right">
+                      <Button
+                        size="sm"
+                        variant={row.shortlisted ? "default" : "outline"}
+                        disabled={pendingId === row.student_id}
+                        onClick={() => handleToggle(row)}
+                        className="gap-1.5"
+                      >
+                        {pendingId === row.student_id ? (
+                          <Spinner />
+                        ) : (
+                          <Star className={cn(row.shortlisted && "fill-current")} />
+                        )}
+                        {row.shortlisted ? "Shortlisted" : "Shortlist"}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
         )}
       </div>
     </div>
+  );
+}
+
+export default function RecruiterTestSubmissionsPage() {
+  return (
+    <Suspense fallback={null}>
+      <RecruiterTestSubmissionsPageContent />
+    </Suspense>
   );
 }

@@ -12,6 +12,9 @@ class Job(Document):
     job_type: JobType
     experience: str
     salary: str
+    salary_min: int | None = None
+    salary_max: int | None = None
+    category: str = "other"
     office_hours: str
     work_place: WorkPlace
     vacancy: int

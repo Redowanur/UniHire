@@ -30,9 +30,6 @@ export const ctaImage = {
 export const footerAbout =
   "UniHire connects graduating cohorts with the recruiters worth bringing to campus — verified students, verified recruiters, no noise.";
 
-export const footerNewsletter =
-  "Get notified when new recruiters start hiring on UniHire.";
-
 export type FooterLink = { label: string; href: string };
 
 export const footerPlatform: FooterLink[] = [

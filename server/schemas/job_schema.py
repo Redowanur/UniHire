@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from beanie import PydanticObjectId
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -17,6 +19,10 @@ class JobListProjection(BaseModel):
     work_place: WorkPlace
     vacancy: int
     location: str
+    category: str = "other"
+    salary_min: int | None = None
+    salary_max: int | None = None
+    created_at: datetime | None = None
 
 
 class JobCreateRequest(BaseModel):
@@ -24,6 +30,9 @@ class JobCreateRequest(BaseModel):
     job_type: JobType
     experience: str
     salary: str
+    salary_min: int | None = None
+    salary_max: int | None = None
+    category: str = "other"
     office_hours: str
     work_place: WorkPlace
     vacancy: int
@@ -39,6 +48,9 @@ class JobUpdateRequest(BaseModel):
     job_type: JobType | None = None
     experience: str | None = None
     salary: str | None = None
+    salary_min: int | None = None
+    salary_max: int | None = None
+    category: str | None = None
     office_hours: str | None = None
     work_place: WorkPlace | None = None
     vacancy: int | None = None

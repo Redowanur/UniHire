@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { BadgeCheck, CircleAlert } from "lucide-react";
 
+import { buttonVariants } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Spinner } from "@/components/ui/spinner";
 import { verifyEmail } from "@/lib/api";
 
 type State =
@@ -43,48 +46,45 @@ export default function VerifyEmailPage() {
   }, []);
 
   return (
-    <div className="bg-surface/60 py-16">
-      <div className="mx-auto w-full max-w-md px-4">
-        <div className="animate-overlay-in flex flex-col items-center gap-4 rounded-2xl border border-line bg-white p-8 text-center shadow-card">
-          {state.kind === "loading" ? (
-            <>
-              <span className="size-10 animate-spin rounded-full border-3 border-line border-t-primary-500" />
-              <p className="text-sm text-body">Verifying your account…</p>
-            </>
-          ) : state.kind === "success" ? (
-            <>
-              <span className="grid size-14 place-items-center rounded-full bg-primary-50 text-primary-500">
-                <BadgeCheck className="size-7" />
-              </span>
-              <h1 className="font-display text-xl font-bold text-heading">
-                {state.alreadyVerified ? "Already verified" : "Email verified"}
-              </h1>
-              <p className="text-sm text-body">{state.message}</p>
-              <Link
-                href="/"
-                className="mt-2 h-11 rounded-xl bg-primary-500 px-6 text-sm font-semibold leading-[2.75rem] text-white transition-colors hover:bg-primary-600"
-              >
-                Go to home
-              </Link>
-            </>
-          ) : (
-            <>
-              <span className="grid size-14 place-items-center rounded-full bg-red-50 text-red-500">
-                <CircleAlert className="size-7" />
-              </span>
-              <h1 className="font-display text-xl font-bold text-heading">
-                Verification failed
-              </h1>
-              <p className="text-sm text-body">{state.message}</p>
-              <Link
-                href="/login"
-                className="mt-2 h-11 rounded-xl border border-line px-6 text-sm font-semibold text-heading leading-[2.6rem] transition-colors hover:border-primary-400 hover:text-primary-600"
-              >
-                Back to login
-              </Link>
-            </>
-          )}
-        </div>
+    <div className="bg-secondary/40 px-4 py-16">
+      <div className="mx-auto w-full max-w-md">
+        <Card className="animate-fade-up shadow-xl shadow-primary/5">
+          <CardContent className="flex flex-col items-center gap-4 text-center">
+            {state.kind === "loading" ? (
+              <>
+                <Spinner className="size-10 text-primary" />
+                <p className="text-sm text-muted-foreground">Verifying your account…</p>
+              </>
+            ) : state.kind === "success" ? (
+              <>
+                <span className="grid size-14 place-items-center rounded-full bg-secondary text-primary">
+                  <BadgeCheck className="size-7" />
+                </span>
+                <h1 className="text-xl font-semibold">
+                  {state.alreadyVerified ? "Already verified" : "Email verified"}
+                </h1>
+                <p className="text-sm text-muted-foreground">{state.message}</p>
+                <Link href="/" className={buttonVariants({ size: "lg", className: "mt-2" })}>
+                  Go to home
+                </Link>
+              </>
+            ) : (
+              <>
+                <span className="grid size-14 place-items-center rounded-full bg-destructive/10 text-destructive">
+                  <CircleAlert className="size-7" />
+                </span>
+                <h1 className="text-xl font-semibold">Verification failed</h1>
+                <p className="text-sm text-muted-foreground">{state.message}</p>
+                <Link
+                  href="/login"
+                  className={buttonVariants({ variant: "outline", size: "lg", className: "mt-2" })}
+                >
+                  Back to login
+                </Link>
+              </>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

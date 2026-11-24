@@ -2,12 +2,20 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { LoaderCircle } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
-
-export const inputClass =
-  "h-11 w-full rounded-xl border border-line bg-white px-3.5 text-sm font-medium text-heading outline-none transition-all duration-200 placeholder:font-normal placeholder:text-muted hover:border-muted focus:border-primary-400 focus:shadow-[0_0_0_3px_rgb(109_83_236_/_0.14)]";
 
 export function FormField({
   label,
@@ -21,12 +29,12 @@ export function FormField({
   htmlFor?: string;
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <label htmlFor={htmlFor} className="text-sm font-semibold text-heading">
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <Label htmlFor={htmlFor} className="font-semibold">
         {label}
-      </label>
+      </Label>
       {children}
-      {error ? <p className="text-xs font-medium text-red-500">{error}</p> : null}
+      {error ? <p className="text-xs font-medium text-destructive">{error}</p> : null}
     </div>
   );
 }
@@ -44,17 +52,10 @@ export function SubmitButton({
   className?: string;
 }) {
   return (
-    <button
-      type="submit"
-      disabled={loading}
-      className={cn(
-        "flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary-500 text-sm font-semibold text-white transition-colors duration-200 hover:bg-primary-600 active:bg-primary-700 disabled:pointer-events-none disabled:opacity-60",
-        className,
-      )}
-    >
-      {loading ? <LoaderCircle className="size-4 shrink-0 animate-spin" /> : icon}
+    <Button type="submit" size="lg" disabled={loading} className={cn("w-full gap-2", className)}>
+      {loading ? <Spinner /> : icon}
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -63,27 +64,35 @@ export function AuthShell({
   subtitle,
   children,
   footer,
+  wide = false,
 }: {
   title: string;
   subtitle: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
+  wide?: boolean;
 }) {
   return (
-    <div className="bg-surface/60 py-12 md:py-16">
-      <div className="mx-auto w-full max-w-md px-4">
-        <div className="animate-overlay-in rounded-2xl border border-line bg-white p-6 shadow-card md:p-8">
-          <div className="mb-6 text-center">
-            <h1 className="font-display text-2xl font-bold text-heading">{title}</h1>
-            <p className="mt-1.5 text-sm text-body">{subtitle}</p>
-          </div>
-          {children}
-          {footer ? (
-            <div className="mt-6 border-t border-line pt-4 text-center text-sm text-body">
-              {footer}
+    <div className="relative isolate overflow-hidden bg-secondary/40 px-4 py-10 md:py-16">
+      <div
+        className="pointer-events-none absolute -top-32 left-1/2 -z-10 size-[28rem] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl"
+        aria-hidden="true"
+      />
+      <div className={cn("mx-auto w-full", wide ? "max-w-2xl" : "max-w-md")}>
+        <Card className="animate-fade-up shadow-xl shadow-primary/5">
+          <CardContent>
+            <div className="mb-6 text-center">
+              <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+              <p className="mt-1.5 text-sm text-muted-foreground">{subtitle}</p>
             </div>
-          ) : null}
-        </div>
+            {children}
+            {footer ? (
+              <div className="mt-6 border-t pt-4 text-center text-sm text-muted-foreground">
+                {footer}
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
@@ -102,13 +111,11 @@ export function PhoneField({
   required?: boolean;
 }) {
   return (
-    <div
-      className={cn(
-        "flex h-11 w-full items-center gap-1.5 rounded-xl border border-line bg-white pl-3.5 text-sm font-medium text-heading outline-none transition-all duration-200 hover:border-muted focus-within:border-primary-400 focus-within:shadow-[0_0_0_3px_rgb(109_83_236_/_0.14)]",
-      )}
-    >
-      <span className="shrink-0 select-none text-muted">+880</span>
-      <input
+    <div className="flex h-10 w-full items-center rounded-xl border border-input bg-background transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
+      <span className="flex h-full shrink-0 items-center rounded-l-xl border-r bg-muted px-3 text-sm font-medium text-muted-foreground select-none">
+        +880
+      </span>
+      <Input
         id={id}
         type="tel"
         inputMode="numeric"
@@ -119,9 +126,50 @@ export function PhoneField({
         placeholder="1XXXXXXXXX"
         value={value}
         onChange={(event) => onChange(event.target.value.replace(/\D/g, "").slice(0, 10))}
-        className="h-full min-w-0 flex-1 rounded-r-xl bg-transparent pr-3.5 outline-none placeholder:font-normal placeholder:text-muted"
+        className="h-full min-w-0 flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0 dark:bg-transparent"
       />
     </div>
+  );
+}
+
+/** shadcn Select wrapper for simple {id, name} option lists. */
+export function SelectField({
+  id,
+  value,
+  onChange,
+  options,
+  placeholder,
+  disabled,
+  required,
+}: {
+  id?: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: { id: string; name: string }[];
+  placeholder: string;
+  disabled?: boolean;
+  required?: boolean;
+}) {
+  const items = options.map((o) => ({ value: o.id, label: o.name }));
+  return (
+    <Select
+      value={value || null}
+      onValueChange={(v) => onChange(v ?? "")}
+      items={items}
+      disabled={disabled}
+      required={required}
+    >
+      <SelectTrigger id={id} className="w-full">
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
+      <SelectContent>
+        {items.map((item) => (
+          <SelectItem key={item.value} value={item.value}>
+            {item.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 
@@ -137,10 +185,7 @@ export function SwitchAuthLink({
   return (
     <>
       {text}{" "}
-      <Link
-        href={href}
-        className="font-semibold text-primary-600 transition-colors hover:text-primary-700"
-      >
+      <Link href={href} className="font-semibold text-primary transition-colors hover:text-primary/80">
         {linkText}
       </Link>
     </>

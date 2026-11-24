@@ -1,26 +1,20 @@
 import Link from "next/link";
-import { Container } from "@/components/ui/container";
-import { Logo } from "@/components/logo";
-import {
-  footerAbout,
-  footerAccounts,
-  footerNewsletter,
-  footerPlatform,
-  type FooterLink,
-} from "@/lib/data";
 
-const columnTitle = "font-display text-base font-semibold text-white";
+import { Logo } from "@/components/logo";
+import { Container } from "@/components/ui/container";
+import { Separator } from "@/components/ui/separator";
+import { footerAbout, footerAccounts, footerPlatform, type FooterLink } from "@/lib/data";
 
 function FooterColumn({ title, items }: { title: string; items: FooterLink[] }) {
   return (
     <div>
-      <p className={columnTitle}>{title}</p>
-      <ul className="mt-5 space-y-3">
+      <p className="text-sm font-semibold text-foreground">{title}</p>
+      <ul className="mt-4 space-y-3">
         {items.map((item) => (
           <li key={item.label}>
             <Link
               href={item.href}
-              className="text-sm text-white/60 transition-colors hover:text-primary-400"
+              className="text-sm text-muted-foreground transition-colors hover:text-primary"
             >
               {item.label}
             </Link>
@@ -33,57 +27,20 @@ function FooterColumn({ title, items }: { title: string; items: FooterLink[] }) 
 
 export function Footer() {
   return (
-    <footer className="bg-night-950 text-white/70">
-      <Container className="grid gap-12 pb-14 pt-16 md:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1.1fr_1.4fr] lg:gap-8">
-        <div>
-          <Logo inverted />
-          <p className="mt-5 max-w-xs text-sm leading-6 text-white/60">
-            {footerAbout}
-          </p>
+    <footer className="mt-auto border-t bg-card">
+      <Container className="grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr]">
+        <div className="sm:col-span-2 lg:col-span-1">
+          <Logo />
+          <p className="mt-4 max-w-sm text-sm leading-6 text-muted-foreground">{footerAbout}</p>
         </div>
-
         <FooterColumn title="Platform" items={footerPlatform} />
         <FooterColumn title="Accounts" items={footerAccounts} />
-
-        <div>
-          <p className={columnTitle}>Stay in the loop</p>
-          <p className="mt-5 max-w-sm text-sm leading-6 text-white/60">
-            {footerNewsletter}
-          </p>
-          <form className="mt-5">
-            <label htmlFor="newsletter-email" className="sr-only">
-              Email address
-            </label>
-            <input
-              id="newsletter-email"
-              name="email"
-              type="email"
-              placeholder="Enter Address"
-              className="h-12 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white outline-none transition-colors placeholder:text-white/40 focus:border-primary-500"
-            />
-            <button
-              type="submit"
-              className="mt-3 h-12 w-full rounded-xl bg-primary-500 text-sm font-semibold text-white transition-colors hover:bg-primary-600"
-            >
-              Subscribe now
-            </button>
-          </form>
-        </div>
       </Container>
-
-      <div className="border-t border-white/10">
-        <Container className="flex flex-col items-center justify-between gap-3 py-6 text-xs text-white/50 sm:flex-row">
-          <p>© UniHire, 2026. All rights reserved.</p>
-          <div className="flex items-center gap-6">
-            <Link href="/" className="underline-offset-4 transition-colors hover:text-white hover:underline">
-              Privacy Policy
-            </Link>
-            <Link href="/" className="underline-offset-4 transition-colors hover:text-white hover:underline">
-              Terms &amp; Conditions
-            </Link>
-          </div>
-        </Container>
-      </div>
+      <Separator />
+      <Container className="flex flex-col items-center justify-between gap-3 py-6 text-xs text-muted-foreground sm:flex-row">
+        <p>© UniHire, 2026. All rights reserved.</p>
+        <p>Built for graduating cohorts and the recruiters who hire them.</p>
+      </Container>
     </footer>
   );
 }

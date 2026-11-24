@@ -202,7 +202,21 @@ export type JobListing = {
   work_place: "remote" | "onsite" | "hybrid";
   vacancy: number;
   location: string;
+  category?: string;
+  salary_min?: number | null;
+  salary_max?: number | null;
+  created_at?: string | null;
 };
+
+export const JOB_CATEGORIES = [
+  { value: "engineering", label: "Engineering" },
+  { value: "data-ai", label: "Data & AI" },
+  { value: "design", label: "Design" },
+  { value: "product", label: "Product" },
+  { value: "marketing", label: "Marketing" },
+  { value: "finance", label: "Finance" },
+  { value: "other", label: "Other" },
+] as const;
 
 export async function fetchJobs(params?: {
   search?: string;
@@ -210,6 +224,11 @@ export async function fetchJobs(params?: {
   job_type?: string;
   work_place?: string;
   created_by?: string;
+  location?: string;
+  category?: string;
+  posted_within?: number;
+  salary_min?: number;
+  salary_max?: number;
   page?: number;
   limit?: number;
 }): Promise<{ total_jobs: number; total_pages: number; current_page: number; jobs: JobListing[] }> {
@@ -219,6 +238,11 @@ export async function fetchJobs(params?: {
   if (params?.job_type) query.set("job_type", params.job_type);
   if (params?.work_place) query.set("work_place", params.work_place);
   if (params?.created_by) query.set("created_by", params.created_by);
+  if (params?.location) query.set("location", params.location);
+  if (params?.category) query.set("category", params.category);
+  if (params?.posted_within) query.set("posted_within", String(params.posted_within));
+  if (params?.salary_min !== undefined) query.set("salary_min", String(params.salary_min));
+  if (params?.salary_max !== undefined) query.set("salary_max", String(params.salary_max));
   if (params?.page) query.set("page", String(params.page));
   if (params?.limit) query.set("limit", String(params.limit));
   const qs = query.toString();
@@ -248,6 +272,7 @@ export type JobCreatePayload = {
   work_place: JobListing["work_place"];
   vacancy: number;
   location: string;
+  category?: string;
   description: string;
   responsibilities: string[];
   requirements: string[];

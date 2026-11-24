@@ -9,7 +9,9 @@ from enums.user_enums import UserType
 from models.job_model import Job
 from models.recruiter_model import Recruiter
 from schemas.job_schema import JobCreateRequest, JobListProjection, JobUpdateRequest
-from utils.helpers import time_ago, utcnow
+from datetime import timedelta
+
+from utils.helpers import parse_salary_range, time_ago, utcnow
 
 
 router = APIRouter(prefix="/job", tags=["Job Management"])
@@ -27,8 +29,11 @@ async def create_job(job: JobCreateRequest, user: Recruiter = Depends(get_curren
             detail="Only recruiters can create jobs",
         )
 
+    data = job.model_dump()
+    if data.get("salary_min") is None and data.get("salary_max") is None:
+        data["salary_min"], data["salary_max"] = parse_salary_range(job.salary)
     new_job = Job(
-        **job.model_dump(),
+        **data,
         company_name=user.company_name,
         created_by=user.email
     )
@@ -110,6 +115,11 @@ async def list_jobs(
     job_type: JobType | None = Query(None, description="Filter by job type"),
     work_place: WorkPlace | None = Query(None, description="Filter by work place"),
     created_by: EmailStr | None = Query(None, description="Filter by recruiter email"),
+    location: str | None = Query(None, description="Filter by location (partial, case-insensitive)"),
+    category: str | None = Query(None, description="Filter by job category"),
+    posted_within: int | None = Query(None, ge=1, le=365, description="Only jobs posted in the last N days"),
+    salary_min: int | None = Query(None, ge=0, description="Minimum salary (jobs whose range reaches it)"),
+    salary_max: int | None = Query(None, ge=0, description="Maximum salary (jobs whose range starts below it)"),
     page: int = Query(1, ge=1, description="Page number"),
     limit: int = Query(10, ge=1, le=100, description="Number of jobs per page"),
 ):
@@ -133,8 +143,18 @@ async def list_jobs(
         filters.append(Job.work_place == work_place)
     if created_by:
         filters.append(Job.created_by == created_by)
+    if location:
+        filters.append({"location": {"$regex": re.escape(location), "$options": "i"}})
+    if category:
+        filters.append({"category": {"$regex": f"^{re.escape(category)}$", "$options": "i"}})
+    if posted_within:
+        filters.append({"created_at": {"$gte": utcnow() - timedelta(days=posted_within)}})
+    if salary_min is not None:
+        filters.append({"salary_max": {"$gte": salary_min}})
+    if salary_max is not None:
+        filters.append({"salary_min": {"$lte": salary_max}})
 
-    query = Job.find(*filters, projection_model=JobListProjection)
+    query = Job.find(*filters, projection_model=JobListProjection).sort("-created_at")
     total_jobs = await query.count()
 
     jobs = await query.skip((page - 1) * limit).limit(limit).to_list()

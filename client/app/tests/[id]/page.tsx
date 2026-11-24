@@ -1,21 +1,37 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState, type FormEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { CheckCircle2, LoaderCircle } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
 
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Questionnaire,
+  QuestionnaireActions,
+  QuestionnaireChoice,
+  QuestionnaireChoices,
+  QuestionnaireDescription,
+  QuestionnaireError,
+  QuestionnaireItem,
+  QuestionnaireNext,
+  QuestionnairePrevious,
+  QuestionnaireProgress,
+  QuestionnaireSubmit,
+  QuestionnaireTitle,
+} from "@/components/ui/questionnaire";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/hooks/use-auth";
 import { fetchScreeningTest, submitScreeningTest, type ScreeningTestDetail } from "@/lib/api";
-import { cn } from "@/lib/utils";
 
-export default function TakeScreeningTestPage() {
+function TakeScreeningTestPageContent() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { status, accessToken } = useAuth();
 
   const [test, setTest] = useState<ScreeningTestDetail | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [answers, setAnswers] = useState<number[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ score: number; total: number } | null>(null);
 
@@ -28,120 +44,121 @@ export default function TakeScreeningTestPage() {
     fetchScreeningTest(params.id, accessToken)
       .then((t) => {
         setTest(t);
-        setAnswers(new Array(t.questions.length).fill(-1));
         if (t.already_submitted && t.my_score !== null && t.my_total !== null) {
           setResult({ score: t.my_score, total: t.my_total });
         }
       })
-      .catch((err) => setError(err instanceof Error ? err.message : "Couldn't load this test."));
+      .catch((err) => {
+        const message = err instanceof Error ? err.message : "Couldn't load this test.";
+        toast.error(message);
+        setLoadError(message);
+      });
   }, [accessToken, params.id]);
 
-  async function handleSubmit() {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     if (!accessToken || !test) return;
+    const data = new FormData(event.currentTarget);
+    const answers = test.questions.map((_, i) => Number(data.get(`question-${i}`) ?? -1));
     setSubmitting(true);
-    setError(null);
     try {
-      const outcome = await submitScreeningTest(test.id, answers, accessToken);
-      setResult(outcome);
+      setResult(await submitScreeningTest(test.id, answers, accessToken));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't submit your answers.");
+      toast.error(err instanceof Error ? err.message : "Couldn't submit your answers.");
     } finally {
       setSubmitting(false);
     }
   }
 
-  if (status === "loading" || !test) {
+  if (loadError) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <LoaderCircle className="size-6 animate-spin text-primary-500" />
-      </div>
+      <p className="mx-auto max-w-lg px-4 py-20 text-center text-sm text-muted-foreground">{loadError}</p>
     );
   }
 
-  if (error && !test) {
-    return <p className="mx-auto max-w-lg px-4 py-20 text-center text-sm text-body">{error}</p>;
+  if (status === "loading" || !test) {
+    return (
+      <div className="mx-auto w-full max-w-2xl space-y-4 px-4 py-12">
+        <Skeleton className="h-9 w-1/2" />
+        <Skeleton className="h-64 w-full rounded-2xl" />
+      </div>
+    );
   }
 
   if (result) {
     return (
-      <div className="bg-surface/60 py-16">
-        <div className="mx-auto w-full max-w-md px-4">
-          <div className="animate-overlay-in rounded-2xl border border-line bg-white p-8 text-center shadow-card">
-            <span className="mx-auto grid size-14 place-items-center rounded-full bg-primary-50 text-primary-500">
-              <CheckCircle2 className="size-7" />
-            </span>
-            <h1 className="mt-4 font-display text-xl font-bold text-heading">Test submitted</h1>
-            <p className="mt-2 text-sm text-body">
-              You scored <span className="font-semibold text-heading">{result.score}</span> out of{" "}
-              {result.total}.
-            </p>
-            <p className="mt-3 text-xs text-muted">
-              The recruiter will review results and may shortlist you from here.
-            </p>
-          </div>
+      <div className="bg-secondary/40 px-4 py-16">
+        <div className="mx-auto w-full max-w-md">
+          <Card className="animate-fade-up text-center shadow-xl shadow-primary/5">
+            <CardContent>
+              <span className="mx-auto grid size-14 place-items-center rounded-full bg-secondary text-primary">
+                <CheckCircle2 className="size-7" />
+              </span>
+              <h1 className="mt-4 text-xl font-semibold">Test submitted</h1>
+              <p className="mt-2 text-sm text-muted-foreground">
+                You scored <span className="font-semibold text-foreground">{result.score}</span> out of{" "}
+                {result.total}.
+              </p>
+              <p className="mt-3 text-xs text-muted-foreground">
+                The recruiter will review results and may shortlist you from here.
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
   }
 
-  const allAnswered = answers.every((a) => a >= 0);
-
   return (
-    <div className="bg-surface/60 py-10 md:py-14">
-      <div className="mx-auto w-full max-w-2xl px-4">
-        <h1 className="font-display text-2xl font-bold text-heading">{test.title}</h1>
-        {test.description ? <p className="mt-1 text-sm text-body">{test.description}</p> : null}
-
-        {error ? (
-          <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm font-medium text-red-600">
-            {error}
-          </p>
-        ) : null}
-
-        <div className="mt-6 space-y-4">
-          {test.questions.map((question, qIndex) => (
-            <div key={question.id} className="rounded-2xl border border-line bg-white p-5">
-              <p className="text-sm font-semibold text-heading">
-                {qIndex + 1}. {question.text}
-              </p>
-              <div className="mt-3 space-y-2">
-                {question.options.map((option, oIndex) => (
-                  <label
-                    key={oIndex}
-                    className={cn(
-                      "flex cursor-pointer items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-sm transition-colors",
-                      answers[qIndex] === oIndex
-                        ? "border-primary-400 bg-primary-50 text-primary-700"
-                        : "border-line text-heading hover:border-primary-200",
-                    )}
-                  >
-                    <input
-                      type="radio"
-                      name={`question-${qIndex}`}
-                      checked={answers[qIndex] === oIndex}
-                      onChange={() =>
-                        setAnswers((current) => current.map((a, i) => (i === qIndex ? oIndex : a)))
-                      }
-                      className="size-4 accent-primary-500"
-                    />
-                    {option}
-                  </label>
-                ))}
-              </div>
-            </div>
-          ))}
+    <div className="bg-secondary/40 px-4 py-8 md:py-14">
+      <div className="mx-auto w-full max-w-2xl">
+        <div className="animate-fade-up mb-6">
+          <h1 className="text-2xl font-semibold tracking-tight">{test.title}</h1>
+          {test.description ? (
+            <p className="mt-1 text-sm text-muted-foreground">{test.description}</p>
+          ) : null}
         </div>
 
-        <button
-          type="button"
-          disabled={!allAnswered || submitting}
-          onClick={handleSubmit}
-          className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary-500 text-sm font-semibold text-white transition-colors hover:bg-primary-600 disabled:opacity-60"
-        >
-          {submitting ? <LoaderCircle className="size-4 animate-spin" /> : null}
-          Submit answers
-        </button>
+        <Card className="animate-fade-up" style={{ animationDelay: "100ms" }}>
+          <CardContent>
+            <Questionnaire shortcuts="letters" onSubmit={handleSubmit}>
+              <QuestionnaireProgress />
+              {test.questions.map((question, qIndex) => (
+                <QuestionnaireItem key={question.id} name={`question-${qIndex}`} required>
+                  <QuestionnaireTitle className="text-lg">
+                    {qIndex + 1}. {question.text}
+                  </QuestionnaireTitle>
+                  <QuestionnaireDescription>Choose one answer.</QuestionnaireDescription>
+                  <QuestionnaireChoices>
+                    {question.options.map((option, oIndex) => (
+                      <QuestionnaireChoice key={oIndex} value={String(oIndex)}>
+                        {option}
+                      </QuestionnaireChoice>
+                    ))}
+                  </QuestionnaireChoices>
+                  <QuestionnaireError />
+                </QuestionnaireItem>
+              ))}
+              <QuestionnaireActions>
+                <QuestionnairePrevious />
+                <QuestionnaireNext />
+                <QuestionnaireSubmit disabled={submitting}>
+                  {submitting ? <Spinner /> : null}
+                  Submit answers
+                </QuestionnaireSubmit>
+              </QuestionnaireActions>
+            </Questionnaire>
+          </CardContent>
+        </Card>
       </div>
     </div>
+  );
+}
+
+export default function TakeScreeningTestPage() {
+  return (
+    <Suspense fallback={null}>
+      <TakeScreeningTestPageContent />
+    </Suspense>
   );
 }

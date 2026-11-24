@@ -4,7 +4,10 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import { AuthShell, FormField, SubmitButton, inputClass } from "@/components/auth/form-fields";
+import { AuthShell, FormField, SubmitButton } from "@/components/auth/form-fields";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { requestPasswordReset, resetPassword } from "@/lib/api";
 
 const CODE_LIFETIME_SECONDS = 10 * 60;
@@ -93,7 +96,7 @@ export default function ForgotPasswordPage() {
       <AuthShell title="Forgot password" subtitle="We'll email you a code to reset it">
         <form onSubmit={handleRequestCode} className="flex flex-col gap-4">
           <FormField label="Email" htmlFor="forgot-email">
-            <input
+            <Input
               id="forgot-email"
               type="email"
               required
@@ -101,7 +104,6 @@ export default function ForgotPasswordPage() {
               placeholder="you@example.com"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className={inputClass}
             />
           </FormField>
           <SubmitButton loading={loading}>Send reset code</SubmitButton>
@@ -115,13 +117,13 @@ export default function ForgotPasswordPage() {
       title="Enter your code"
       subtitle={
         <>
-          Sent to <span className="font-semibold text-heading">{email}</span>
+          Sent to <span className="font-semibold text-foreground">{email}</span>
         </>
       }
     >
       <form onSubmit={handleReset} className="flex flex-col gap-4">
         <FormField label="6-digit code" htmlFor="reset-code">
-          <input
+          <Input
             id="reset-code"
             type="text"
             inputMode="numeric"
@@ -132,21 +134,23 @@ export default function ForgotPasswordPage() {
             placeholder="123456"
             value={code}
             onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
-            className={`${inputClass} text-center text-lg tracking-[0.5em]`}
+            className="h-12 text-center text-xl tracking-[0.5em]"
           />
         </FormField>
 
-        <p className="-mt-2 text-center text-xs font-medium text-muted">
+        <div className="-mt-2 flex justify-center">
           {expired ? (
-            <span className="text-red-500">Code expired</span>
+            <Badge variant="destructive">Code expired</Badge>
           ) : (
-            <>Expires in {formatCountdown(secondsLeft)}</>
+            <Badge variant="secondary" className="tabular-nums">
+              Expires in {formatCountdown(secondsLeft)}
+            </Badge>
           )}
-        </p>
+        </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField label="New password" htmlFor="reset-password">
-            <input
+            <Input
               id="reset-password"
               type="password"
               required
@@ -155,11 +159,10 @@ export default function ForgotPasswordPage() {
               placeholder="Min. 6 characters"
               value={newPassword}
               onChange={(event) => setNewPassword(event.target.value)}
-              className={inputClass}
             />
           </FormField>
           <FormField label="Confirm password" htmlFor="reset-confirm-password">
-            <input
+            <Input
               id="reset-confirm-password"
               type="password"
               required
@@ -168,7 +171,6 @@ export default function ForgotPasswordPage() {
               placeholder="Re-enter password"
               value={confirmPassword}
               onChange={(event) => setConfirmPassword(event.target.value)}
-              className={inputClass}
             />
           </FormField>
         </div>
@@ -178,14 +180,9 @@ export default function ForgotPasswordPage() {
         </SubmitButton>
 
         {expired ? (
-          <button
-            type="button"
-            onClick={handleResend}
-            disabled={loading}
-            className="text-sm font-semibold text-primary-600 transition-colors hover:text-primary-700 disabled:opacity-60"
-          >
+          <Button type="button" variant="ghost" onClick={handleResend} disabled={loading}>
             Resend code
-          </button>
+          </Button>
         ) : null}
       </form>
     </AuthShell>

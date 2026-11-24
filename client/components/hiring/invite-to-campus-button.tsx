@@ -1,10 +1,23 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, LoaderCircle, Send } from "lucide-react";
+import { CheckCircle2, Send } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverDescription,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
+import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 import { createCampusInvite, type JobListing } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -13,7 +26,7 @@ export function InviteToCampusButton({
   job,
   className,
 }: {
-  job: JobListing;
+  job: Pick<JobListing, "id" | "company_name">;
   className?: string;
 }) {
   const router = useRouter();
@@ -21,23 +34,14 @@ export function InviteToCampusButton({
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
 
   if (isRecruiter) return null;
-  if (status === "loading") {
-    return <div className={cn("h-10 w-36 animate-pulse rounded-full bg-surface", className)} />;
-  }
+  if (status === "loading") return <Skeleton className={cn("h-10 w-36", className)} />;
 
   if (!user) {
     return (
-      <Button
-        type="button"
-        size="sm"
-        className={className}
-        onClick={() => router.push("/signup")}
-      >
+      <Button className={className} onClick={() => router.push("/signup")}>
         Invite to campus
       </Button>
     );
@@ -45,24 +49,20 @@ export function InviteToCampusButton({
 
   if (!user.is_verified) {
     return (
-      <div className={cn("text-right", className)}>
-        <Button type="button" size="sm" variant="outline" disabled>
-          Invite to campus
-        </Button>
-        <p className="mt-1.5 text-[11px] text-muted">Verify your email first</p>
-      </div>
+      <Tooltip>
+        <TooltipTrigger render={<span className={cn("inline-flex", className)} tabIndex={0} />}>
+          <Button variant="outline" disabled className="w-full">
+            Invite to campus
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Verify your email first</TooltipContent>
+      </Tooltip>
     );
   }
 
   if (!user.cohort_id) {
     return (
-      <Button
-        type="button"
-        size="sm"
-        variant="outline"
-        className={className}
-        onClick={() => router.push("/onboarding/cohort")}
-      >
+      <Button variant="outline" className={className} onClick={() => router.push("/onboarding/cohort")}>
         Join a cohort to invite
       </Button>
     );
@@ -71,64 +71,48 @@ export function InviteToCampusButton({
   async function handleSend() {
     if (!accessToken) return;
     setSending(true);
-    setError(null);
     try {
       await createCampusInvite({ job_id: job.id, message: message.trim() || undefined }, accessToken);
       setSent(true);
+      setOpen(false);
+      toast.success(`Invite sent to ${job.company_name}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't send the invite. Try again.");
+      toast.error(err instanceof Error ? err.message : "Couldn't send the invite. Try again.");
     } finally {
       setSending(false);
     }
   }
 
-  return (
-    <div
-      ref={wrapRef}
-      className={cn("relative", className)}
-      onBlur={(event) => {
-        if (!wrapRef.current?.contains(event.relatedTarget as Node)) setOpen(false);
-      }}
-    >
-      <Button type="button" size="sm" onClick={() => setOpen((v) => !v)}>
-        {sent ? "Invite sent" : "Invite to campus"}
+  if (sent) {
+    return (
+      <Button variant="secondary" disabled className={cn("gap-1.5", className)}>
+        <CheckCircle2 /> Invite sent
       </Button>
+    );
+  }
 
-      {open && !sent ? (
-        <div className="animate-overlay-in absolute right-0 top-[calc(100%+10px)] z-30 w-72 rounded-2xl border border-line bg-white p-4 text-left shadow-2xl shadow-night-950/15">
-          <p className="text-sm font-semibold text-heading">
-            Invite {job.company_name} to your campus
-          </p>
-          <p className="mt-1 text-xs text-body">
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger render={<Button className={className} />}>Invite to campus</PopoverTrigger>
+      <PopoverContent align="end" className="w-80 gap-3 p-4">
+        <PopoverHeader>
+          <PopoverTitle>Invite {job.company_name} to your campus</PopoverTitle>
+          <PopoverDescription>
             They&apos;ll see this on their dashboard and can accept or decline.
-          </p>
-          <textarea
-            value={message}
-            onChange={(event) => setMessage(event.target.value)}
-            placeholder="Optional note (e.g. why your cohort is a great fit)"
-            rows={3}
-            maxLength={1000}
-            className="mt-3 w-full resize-none rounded-xl border border-line bg-white p-2.5 text-xs text-heading outline-none placeholder:text-muted focus:border-primary-400"
-          />
-          {error ? <p className="mt-2 text-xs font-medium text-red-500">{error}</p> : null}
-          <button
-            type="button"
-            disabled={sending}
-            onClick={handleSend}
-            className="mt-3 flex h-9 w-full items-center justify-center gap-1.5 rounded-full bg-primary-500 text-xs font-semibold text-white transition-colors hover:bg-primary-600 disabled:opacity-60"
-          >
-            {sending ? <LoaderCircle className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
-            Send invite
-          </button>
-        </div>
-      ) : null}
-
-      {sent ? (
-        <p className="absolute right-0 top-[calc(100%+6px)] flex items-center gap-1 text-[11px] font-medium text-primary-600">
-          <CheckCircle2 className="size-3.5" />
-          On its way
-        </p>
-      ) : null}
-    </div>
+          </PopoverDescription>
+        </PopoverHeader>
+        <Textarea
+          value={message}
+          onChange={(event) => setMessage(event.target.value)}
+          placeholder="Optional note (e.g. why your cohort is a great fit)"
+          rows={3}
+          maxLength={1000}
+        />
+        <Button onClick={handleSend} disabled={sending} className="w-full gap-2">
+          {sending ? <Spinner /> : <Send />}
+          Send invite
+        </Button>
+      </PopoverContent>
+    </Popover>
   );
 }

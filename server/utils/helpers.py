@@ -35,3 +35,19 @@ def time_ago(dt: datetime) -> str:
 
 def utcnow() -> datetime:
     return datetime.now(timezone.utc)
+
+def parse_salary_range(text: str) -> tuple[int | None, int | None]:
+    """Best-effort parse of '$50k - $80k' / '40,000-60,000' into (min, max)."""
+    import re
+
+    values: list[int] = []
+    for number, suffix in re.findall(r"(\d[\d,]*(?:\.\d+)?)\s*([kKmM]?)", text or ""):
+        value = float(number.replace(",", ""))
+        if suffix.lower() == "k":
+            value *= 1_000
+        elif suffix.lower() == "m":
+            value *= 1_000_000
+        values.append(int(value))
+    if not values:
+        return None, None
+    return min(values), max(values)

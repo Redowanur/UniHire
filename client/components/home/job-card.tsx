@@ -1,6 +1,9 @@
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
+import { Banknote, Building2, Clock, MapPin } from "lucide-react";
+
 import { InviteToCampusButton } from "@/components/hiring/invite-to-campus-button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import type { JobListing } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -26,7 +29,14 @@ export function initialsFor(name: string) {
     .join("");
 }
 
-export const avatarPalette = ["#6d53ec", "#f58a0f", "#2563eb", "#0d9488", "#be185d", "#7c3aed"];
+const avatarPalette = [
+  "oklch(0.55 0.22 285)",
+  "oklch(0.68 0.17 55)",
+  "oklch(0.55 0.18 255)",
+  "oklch(0.58 0.12 185)",
+  "oklch(0.55 0.2 350)",
+  "oklch(0.5 0.2 305)",
+];
 
 export function colorFor(seed: string) {
   let hash = 0;
@@ -34,49 +44,71 @@ export function colorFor(seed: string) {
   return avatarPalette[hash % avatarPalette.length];
 }
 
+export function CompanyMark({ name, className }: { name: string; className?: string }) {
+  return (
+    <span
+      className={cn(
+        "grid size-12 shrink-0 place-items-center rounded-xl text-sm font-semibold text-white",
+        className,
+      )}
+      style={{ backgroundColor: colorFor(name) }}
+      aria-hidden="true"
+    >
+      {initialsFor(name)}
+    </span>
+  );
+}
+
 export function JobCard({ job, className }: { job: JobListing; className?: string }) {
   return (
-    <article
+    <Card
       className={cn(
-        "group rounded-2xl border border-line bg-white p-5 shadow-card transition-colors hover:border-primary-200 md:p-6",
+        "group/job relative transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:ring-primary/30",
         className,
       )}
     >
-      <div className="flex items-start justify-between gap-4">
-        <Link href={`/hiring/${job.id}`} className="flex min-w-0 items-center gap-4">
-          <span
-            className="grid size-12 shrink-0 place-items-center rounded-xl text-sm font-bold text-white"
-            style={{ backgroundColor: colorFor(job.company_name) }}
-            aria-hidden="true"
-          >
-            {initialsFor(job.company_name)}
-          </span>
-          <div className="min-w-0">
-            <h3 className="truncate font-display text-lg font-semibold text-heading transition-colors group-hover:text-primary-600">
-              {job.title}
+      <CardContent className="flex flex-col gap-4">
+        <div className="flex items-start gap-4">
+          <CompanyMark name={job.company_name} />
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate text-lg font-semibold">
+              <Link
+                href={`/hiring/${job.id}`}
+                className="transition-colors group-hover/job:text-primary after:absolute after:inset-0 after:z-0 after:content-['']"
+              >
+                {job.title}
+              </Link>
             </h3>
-            <p className="mt-0.5 truncate text-sm text-body">{job.company_name}</p>
+            <p className="mt-0.5 truncate text-sm text-muted-foreground">{job.company_name}</p>
           </div>
-        </Link>
-      </div>
+        </div>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-        <ul className="flex flex-wrap items-center gap-2">
-          <li>
-            <Badge icon="clock">{jobTypeLabel[job.job_type]}</Badge>
-          </li>
-          <li>
-            <Badge icon="building">{workPlaceLabel[job.work_place]}</Badge>
-          </li>
-          <li>
-            <Badge icon="dollar-sign">{job.salary}</Badge>
-          </li>
-          <li>
-            <Badge icon="map-pin">{job.location}</Badge>
-          </li>
-        </ul>
-        <InviteToCampusButton job={job} className="w-full md:w-auto" />
-      </div>
-    </article>
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+          <ul className="flex flex-wrap items-center gap-2">
+            <li>
+              <Badge variant="secondary" className="h-7 gap-1.5 px-2.5">
+                <Clock /> {jobTypeLabel[job.job_type]}
+              </Badge>
+            </li>
+            <li>
+              <Badge variant="secondary" className="h-7 gap-1.5 px-2.5">
+                <Building2 /> {workPlaceLabel[job.work_place]}
+              </Badge>
+            </li>
+            <li>
+              <Badge variant="secondary" className="h-7 gap-1.5 px-2.5">
+                <Banknote /> {job.salary}
+              </Badge>
+            </li>
+            <li>
+              <Badge variant="secondary" className="h-7 gap-1.5 px-2.5">
+                <MapPin /> {job.location}
+              </Badge>
+            </li>
+          </ul>
+          <InviteToCampusButton job={job} className="relative z-10 w-full sm:w-auto" />
+        </div>
+      </CardContent>
+    </Card>
   );
 }

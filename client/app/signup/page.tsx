@@ -9,9 +9,10 @@ import {
   FormField,
   PhoneField,
   SubmitButton,
+  SelectField,
   SwitchAuthLink,
-  inputClass,
 } from "@/components/auth/form-fields";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -23,12 +24,6 @@ import {
   signUpStudent,
   type University,
 } from "@/lib/api";
-import { cn } from "@/lib/utils";
-
-const selectClass = cn(
-  inputClass,
-  "cursor-pointer appearance-none bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2398a2b3%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><path d=%22m6 9 6 6 6-6%22/></svg>')] bg-[length:1rem] bg-[right_0.9rem_center] bg-no-repeat pr-9",
-);
 
 function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : "Something went wrong. Please try again.";
@@ -128,7 +123,7 @@ function StudentSignUpForm() {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <FormField label="Full name" htmlFor="student-name">
-        <input
+        <Input
           id="student-name"
           type="text"
           required
@@ -137,13 +132,12 @@ function StudentSignUpForm() {
           placeholder="Your name"
           value={form.name}
           onChange={(event) => update("name", event.target.value)}
-          className={inputClass}
         />
       </FormField>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField label="Email" htmlFor="student-email">
-          <input
+          <Input
             id="student-email"
             type="email"
             required
@@ -151,11 +145,10 @@ function StudentSignUpForm() {
             placeholder="you@university.edu"
             value={form.email}
             onChange={(event) => update("email", event.target.value)}
-            className={inputClass}
           />
         </FormField>
         <FormField label="Registration no." htmlFor="student-regno">
-          <input
+          <Input
             id="student-regno"
             type="number"
             required
@@ -163,57 +156,36 @@ function StudentSignUpForm() {
             placeholder="e.g. 202314010"
             value={form.reg_no}
             onChange={(event) => update("reg_no", event.target.value)}
-            className={inputClass}
           />
         </FormField>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField label="University" htmlFor="student-university">
-          <select
+          <SelectField
             id="student-university"
-            required
             value={uniId}
-            onChange={(event) => {
-              setUniId(event.target.value);
+            placeholder="Select university"
+            options={universities}
+            required
+            onChange={(value) => {
+              setUniId(value);
               // Reset the dependent department selection
               setDepartments([]);
               setDeptId("");
             }}
-            className={cn(selectClass, uniId ? "" : "text-muted")}
-          >
-            <option value="" disabled>
-              Select university
-            </option>
-            {universities.map((university) => (
-              <option key={university.id} value={university.id}>
-                {university.name}
-              </option>
-            ))}
-          </select>
+          />
         </FormField>
         <FormField label="Department" htmlFor="student-department">
-          <select
+          <SelectField
             id="student-department"
-            required
             value={deptId}
+            placeholder={uniId ? "Select department" : "Pick university first"}
+            options={departments}
             disabled={!uniId}
-            onChange={(event) => setDeptId(event.target.value)}
-            className={cn(
-              selectClass,
-              "disabled:cursor-not-allowed disabled:opacity-60",
-              deptId ? "" : "text-muted",
-            )}
-          >
-            <option value="" disabled>
-              {uniId ? "Select department" : "Pick university first"}
-            </option>
-            {departments.map((department) => (
-              <option key={department.id} value={department.id}>
-                {department.name}
-              </option>
-            ))}
-          </select>
+            required
+            onChange={setDeptId}
+          />
         </FormField>
       </div>
 
@@ -223,7 +195,7 @@ function StudentSignUpForm() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField label="Password" htmlFor="student-password">
-          <input
+          <Input
             id="student-password"
             type="password"
             required
@@ -232,11 +204,10 @@ function StudentSignUpForm() {
             placeholder="Min. 8 characters"
             value={form.password}
             onChange={(event) => update("password", event.target.value)}
-            className={inputClass}
           />
         </FormField>
         <FormField label="Confirm password" htmlFor="student-confirm-password">
-          <input
+          <Input
             id="student-confirm-password"
             type="password"
             required
@@ -245,7 +216,6 @@ function StudentSignUpForm() {
             placeholder="Re-enter password"
             value={form.confirmPassword}
             onChange={(event) => update("confirmPassword", event.target.value)}
-            className={inputClass}
           />
         </FormField>
       </div>
@@ -317,7 +287,7 @@ function RecruiterSignUpForm() {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <FormField label="Full name" htmlFor="recruiter-name">
-        <input
+        <Input
           id="recruiter-name"
           type="text"
           required
@@ -326,13 +296,12 @@ function RecruiterSignUpForm() {
           placeholder="Your name"
           value={form.name}
           onChange={(event) => update("name", event.target.value)}
-          className={inputClass}
         />
       </FormField>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField label="Work email" htmlFor="recruiter-email">
-          <input
+          <Input
             id="recruiter-email"
             type="email"
             required
@@ -340,7 +309,6 @@ function RecruiterSignUpForm() {
             placeholder="you@company.com"
             value={form.email}
             onChange={(event) => update("email", event.target.value)}
-            className={inputClass}
           />
         </FormField>
         <FormField label="Phone" htmlFor="recruiter-phone">
@@ -350,7 +318,7 @@ function RecruiterSignUpForm() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField label="Company name" htmlFor="recruiter-company">
-          <input
+          <Input
             id="recruiter-company"
             type="text"
             required
@@ -359,11 +327,10 @@ function RecruiterSignUpForm() {
             placeholder="Must be a registered company"
             value={form.company_name}
             onChange={(event) => update("company_name", event.target.value)}
-            className={inputClass}
           />
         </FormField>
         <FormField label="Designation" htmlFor="recruiter-designation">
-          <input
+          <Input
             id="recruiter-designation"
             type="text"
             required
@@ -372,14 +339,13 @@ function RecruiterSignUpForm() {
             placeholder="e.g. HR Manager"
             value={form.designation}
             onChange={(event) => update("designation", event.target.value)}
-            className={inputClass}
           />
         </FormField>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField label="Password" htmlFor="recruiter-password">
-          <input
+          <Input
             id="recruiter-password"
             type="password"
             required
@@ -388,11 +354,10 @@ function RecruiterSignUpForm() {
             placeholder="Min. 6 characters"
             value={form.password}
             onChange={(event) => update("password", event.target.value)}
-            className={inputClass}
           />
         </FormField>
         <FormField label="Confirm password" htmlFor="recruiter-confirm-password">
-          <input
+          <Input
             id="recruiter-confirm-password"
             type="password"
             required
@@ -401,7 +366,6 @@ function RecruiterSignUpForm() {
             placeholder="Re-enter password"
             value={form.confirmPassword}
             onChange={(event) => update("confirmPassword", event.target.value)}
-            className={inputClass}
           />
         </FormField>
       </div>
@@ -420,6 +384,7 @@ function RecruiterSignUpForm() {
 export default function SignupPage() {
   return (
     <AuthShell
+      wide
       title="Create your account"
       subtitle="Pick your role and join our community"
       footer={
@@ -427,7 +392,7 @@ export default function SignupPage() {
       }
     >
       <Tabs defaultValue="student">
-        <TabsList aria-label="Account type">
+        <TabsList aria-label="Account type" className="mb-5 grid w-full grid-cols-2 group-data-horizontal/tabs:h-11">
           <TabsTrigger value="student">
             <GraduationCap className="size-4.5" />
             Student
