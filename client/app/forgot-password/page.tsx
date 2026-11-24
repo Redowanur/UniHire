@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import { AuthShell, FormField, SubmitButton } from "@/components/auth/form-fields";
+import { AuthShell, FormField, PasswordInput, SubmitButton } from "@/components/auth/form-fields";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -150,9 +150,8 @@ export default function ForgotPasswordPage() {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField label="New password" htmlFor="reset-password">
-            <Input
+            <PasswordInput
               id="reset-password"
-              type="password"
               required
               minLength={6}
               autoComplete="new-password"
@@ -162,9 +161,8 @@ export default function ForgotPasswordPage() {
             />
           </FormField>
           <FormField label="Confirm password" htmlFor="reset-confirm-password">
-            <Input
+            <PasswordInput
               id="reset-confirm-password"
-              type="password"
               required
               minLength={6}
               autoComplete="new-password"

@@ -120,6 +120,7 @@ async def list_jobs(
     posted_within: int | None = Query(None, ge=1, le=365, description="Only jobs posted in the last N days"),
     salary_min: int | None = Query(None, ge=0, description="Minimum salary (jobs whose range reaches it)"),
     salary_max: int | None = Query(None, ge=0, description="Maximum salary (jobs whose range starts below it)"),
+    sort: str = Query("newest", pattern="^(newest|oldest|salary_high|salary_low)$", description="Sort order"),
     page: int = Query(1, ge=1, description="Page number"),
     limit: int = Query(10, ge=1, le=100, description="Number of jobs per page"),
 ):
@@ -154,7 +155,13 @@ async def list_jobs(
     if salary_max is not None:
         filters.append({"salary_min": {"$lte": salary_max}})
 
-    query = Job.find(*filters, projection_model=JobListProjection).sort("-created_at")
+    sort_field = {
+        "newest": "-created_at",
+        "oldest": "+created_at",
+        "salary_high": "-salary_max",
+        "salary_low": "+salary_min",
+    }[sort]
+    query = Job.find(*filters, projection_model=JobListProjection).sort(sort_field)
     total_jobs = await query.count()
 
     jobs = await query.skip((page - 1) * limit).limit(limit).to_list()

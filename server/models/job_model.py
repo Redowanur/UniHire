@@ -8,7 +8,7 @@ from utils.helpers import utcnow
 
 class Job(Document):
     title: str = Field(min_length=5, max_length=50)
-    company_name: str = Field(min_length=5, max_length=50)
+    company_name: str = Field(min_length=2, max_length=100)
     job_type: JobType
     experience: str
     salary: str

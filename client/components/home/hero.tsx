@@ -20,15 +20,15 @@ async function HeroStats() {
   return (
     <>
       {items.map((stat) => (
-        <li key={stat.label} className="flex items-center gap-3">
+        <li key={stat.label} className="flex flex-col items-center gap-2 text-center sm:flex-row sm:gap-3 sm:text-left">
           <span className="grid size-11 place-items-center rounded-xl bg-white/10 text-night-foreground ring-1 ring-white/15 backdrop-blur">
             <stat.icon className="size-5" />
           </span>
-          <span className="text-left">
+          <span>
             <span className="block text-xl font-semibold leading-6 md:text-2xl">
               {stat.value.toLocaleString()}
             </span>
-            <span className="block text-sm text-night-foreground/65">{stat.label}</span>
+            <span className="block text-xs text-night-foreground/65 sm:text-sm">{stat.label}</span>
           </span>
         </li>
       ))}
@@ -40,9 +40,9 @@ function HeroStatsSkeleton() {
   return (
     <>
       {[0, 1, 2].map((i) => (
-        <li key={i} className="flex items-center gap-3">
+        <li key={i} className="flex flex-col items-center gap-2 sm:flex-row sm:gap-3">
           <Skeleton className="size-11 rounded-xl bg-white/10" />
-          <span className="space-y-1.5">
+          <span className="flex flex-col items-center space-y-1.5 sm:items-start">
             <Skeleton className="block h-5 w-12 bg-white/10" />
             <Skeleton className="block h-4 w-24 bg-white/10" />
           </span>
@@ -81,12 +81,12 @@ export function Hero() {
           your university — then shortlist the best fits with a screening test.
         </p>
 
-        <div className="animate-fade-up mt-9 w-full" style={{ animationDelay: "240ms" }}>
+        <div className="animate-fade-up relative z-20 mt-9 w-full" style={{ animationDelay: "240ms" }}>
           <SearchBar />
         </div>
 
         <ul
-          className="animate-fade-up mt-12 flex flex-wrap items-center justify-center gap-x-10 gap-y-6 md:gap-x-14"
+          className="animate-fade-up relative z-0 mt-12 grid w-full max-w-2xl grid-cols-3 gap-3 sm:flex sm:max-w-none sm:flex-wrap sm:items-center sm:justify-center sm:gap-x-10 sm:gap-y-6 md:gap-x-14"
           style={{ animationDelay: "320ms" }}
         >
           <Suspense fallback={<HeroStatsSkeleton />}>

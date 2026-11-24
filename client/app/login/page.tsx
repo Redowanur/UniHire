@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import {
   AuthShell,
   FormField,
+  PasswordInput,
   SubmitButton,
   SwitchAuthLink,
 } from "@/components/auth/form-fields";
@@ -61,9 +62,8 @@ export default function LoginPage() {
         </FormField>
 
         <FormField label="Password" htmlFor="login-password">
-          <Input
+          <PasswordInput
             id="login-password"
-            type="password"
             required
             autoComplete="current-password"
             placeholder="••••••••"

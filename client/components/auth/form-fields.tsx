@@ -1,7 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useState } from "react";
 import Link from "next/link";
+import { Eye, EyeOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -189,5 +191,26 @@ export function SwitchAuthLink({
         {linkText}
       </Link>
     </>
+  );
+}
+
+/** Password input with a show/hide eye toggle. */
+export function PasswordInput({ className, ...props }: React.ComponentProps<typeof Input>) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div className="relative">
+      <Input {...props} type={visible ? "text" : "password"} className={cn("pr-11", className)} />
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        aria-label={visible ? "Hide password" : "Show password"}
+        aria-pressed={visible}
+        onClick={() => setVisible((v) => !v)}
+        className="absolute top-1/2 right-1.5 -translate-y-1/2 text-muted-foreground"
+      >
+        {visible ? <EyeOff /> : <Eye />}
+      </Button>
+    </div>
   );
 }

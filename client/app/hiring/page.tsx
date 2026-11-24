@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { Search, SearchX } from "lucide-react";
 
-import { FilterDrawer, FilterSidebar, SALARY_MAX, SALARY_MIN } from "@/components/hiring/filters";
+import { FilterDrawer, FilterSidebar, SortSelect, SALARY_MAX, SALARY_MIN } from "@/components/hiring/filters";
 import { JobCardSkeleton } from "@/components/home/hiring-feed";
 import { JobCard } from "@/components/home/job-card";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -28,6 +28,7 @@ type HiringSearchParams = {
   posted_within?: string;
   salary_min?: string;
   salary_max?: string;
+  sort?: string;
   page?: string;
 };
 
@@ -39,6 +40,7 @@ const FILTER_KEYS = [
   "posted_within",
   "salary_min",
   "salary_max",
+  "sort",
 ] as const;
 
 function pageWindow(current: number, total: number): (number | "gap")[] {
@@ -65,6 +67,7 @@ async function HiringResults({ searchParams }: { searchParams: Promise<HiringSea
     posted_within: params.posted_within ? Number(params.posted_within) : undefined,
     salary_min: params.salary_min ? Number(params.salary_min) : undefined,
     salary_max: params.salary_max ? Number(params.salary_max) : undefined,
+    sort: params.sort,
     page,
     limit: 8,
   }).catch(() => null);
@@ -85,7 +88,8 @@ async function HiringResults({ searchParams }: { searchParams: Promise<HiringSea
 
   return (
     <>
-      <p className="mb-4 text-sm text-muted-foreground">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <p className="text-sm text-muted-foreground">
         {data ? (
           <>
             <span className="font-semibold text-foreground">{data.total_jobs}</span>{" "}
@@ -95,6 +99,10 @@ async function HiringResults({ searchParams }: { searchParams: Promise<HiringSea
           "Couldn't load roles right now."
         )}
       </p>
+      <Suspense fallback={null}>
+        <SortSelect />
+      </Suspense>
+      </div>
 
       {jobs.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed bg-card px-6 py-14 text-center">
@@ -165,6 +173,7 @@ async function Toolbar({ searchParams }: { searchParams: Promise<HiringSearchPar
   const params = await searchParams;
   const activeCount =
     FILTER_KEYS.filter((key) => {
+      if (key === "sort") return false;
       if (key === "salary_min") return Number(params.salary_min) > SALARY_MIN;
       if (key === "salary_max") return params.salary_max && Number(params.salary_max) < SALARY_MAX;
       return Boolean(params[key]);

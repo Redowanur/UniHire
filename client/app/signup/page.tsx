@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import {
   AuthShell,
   FormField,
+  PasswordInput,
   PhoneField,
   SubmitButton,
   SelectField,
@@ -195,9 +196,8 @@ function StudentSignUpForm() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField label="Password" htmlFor="student-password">
-          <Input
+          <PasswordInput
             id="student-password"
-            type="password"
             required
             minLength={8}
             autoComplete="new-password"
@@ -207,9 +207,8 @@ function StudentSignUpForm() {
           />
         </FormField>
         <FormField label="Confirm password" htmlFor="student-confirm-password">
-          <Input
+          <PasswordInput
             id="student-confirm-password"
-            type="password"
             required
             minLength={8}
             autoComplete="new-password"
@@ -324,7 +323,7 @@ function RecruiterSignUpForm() {
             required
             minLength={2}
             maxLength={100}
-            placeholder="Must be a registered company"
+            placeholder="Your organization"
             value={form.company_name}
             onChange={(event) => update("company_name", event.target.value)}
           />
@@ -345,9 +344,8 @@ function RecruiterSignUpForm() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField label="Password" htmlFor="recruiter-password">
-          <Input
+          <PasswordInput
             id="recruiter-password"
-            type="password"
             required
             minLength={6}
             autoComplete="new-password"
@@ -357,9 +355,8 @@ function RecruiterSignUpForm() {
           />
         </FormField>
         <FormField label="Confirm password" htmlFor="recruiter-confirm-password">
-          <Input
+          <PasswordInput
             id="recruiter-confirm-password"
-            type="password"
             required
             minLength={6}
             autoComplete="new-password"

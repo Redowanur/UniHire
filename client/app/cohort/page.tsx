@@ -318,9 +318,9 @@ export default function CohortDashboardPage() {
                 <CardContent>
                   <form
                     onSubmit={handleCreateLink}
-                    className="flex flex-col gap-3 sm:flex-row sm:items-end"
+                    className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:items-end"
                   >
-                    <div className="flex-1 space-y-1.5">
+                    <div className="min-w-0 space-y-1.5">
                       <p className="text-sm font-semibold">Link expiry</p>
                       <Select value={expiry} onValueChange={(v) => setExpiry(v ?? "never")} items={expiryItems}>
                         <SelectTrigger className="w-full">
@@ -336,9 +336,11 @@ export default function CohortDashboardPage() {
                       </Select>
                     </div>
                     {expiry === "custom" ? (
+                      <div className="min-w-0 space-y-1.5">
+                        <p className="text-sm font-semibold">Expiry date</p>
                       <Popover>
                         <PopoverTrigger
-                          render={<Button variant="outline" className="justify-start gap-2 font-normal" />}
+                          render={<Button variant="outline" className="w-full justify-start gap-2 font-normal lg:w-48" />}
                         >
                           <CalendarIcon />
                           {expiryDate ? expiryDate.toLocaleDateString() : "Select date"}
@@ -352,8 +354,9 @@ export default function CohortDashboardPage() {
                           />
                         </PopoverContent>
                       </Popover>
+                      </div>
                     ) : null}
-                    <Button type="submit" disabled={creatingLink} className="gap-2">
+                    <Button type="submit" disabled={creatingLink} className="w-full gap-2 sm:col-span-full lg:col-span-1 lg:w-auto">
                       {creatingLink ? <Spinner /> : <Plus />}
                       New link
                     </Button>

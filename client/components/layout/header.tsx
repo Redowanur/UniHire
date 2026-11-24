@@ -12,6 +12,7 @@ import { Container } from "@/components/ui/container";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -96,11 +97,13 @@ function UserMenu() {
         <ChevronDown className="size-4 text-muted-foreground" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
+        <DropdownMenuGroup>
         <DropdownMenuLabel className="px-3 py-2">
           <p className="truncate text-sm font-semibold text-foreground">{user.name}</p>
           <p className="truncate text-xs font-normal text-muted-foreground">{user.email}</p>
           <p className="mt-1 text-[11px] font-medium text-primary">{typeLabel}</p>
         </DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem render={<Link href={dashboardHref(user)} />} className="gap-2 py-2.5">
           <LayoutDashboard className="size-4" />

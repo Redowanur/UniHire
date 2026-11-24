@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ListFilter, MapPin, RotateCcw } from "lucide-react";
+import { ArrowUpDown, ListFilter, MapPin, RotateCcw } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -92,6 +92,7 @@ function FilterForm({ onApplied }: { onApplied?: () => void }) {
     const next = new URLSearchParams();
     const search = params.get("search");
     if (search) next.set("search", search);
+    if (params.get("sort")) next.set("sort", params.get("sort")!);
     if (location.trim()) next.set("location", location.trim());
     if (category !== ANY) next.set("category", category);
     if (jobType !== ANY) next.set("job_type", jobType);
@@ -113,8 +114,11 @@ function FilterForm({ onApplied }: { onApplied?: () => void }) {
     setPosted(ANY);
     setSalary([SALARY_MIN, SALARY_MAX]);
     const search = params.get("search");
+    const keep = new URLSearchParams();
+    if (search) keep.set("search", search);
+    if (params.get("sort")) keep.set("sort", params.get("sort")!);
     startTransition(() => {
-      router.push(search ? `${pathname}?search=${encodeURIComponent(search)}` : pathname, {
+      router.push(keep.toString() ? `${pathname}?${keep}` : pathname, {
         scroll: false,
       });
       onApplied?.();
@@ -285,5 +289,51 @@ export function FilterDrawer({ activeCount }: { activeCount: number }) {
         </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+const sortItems = [
+  { value: "newest", label: "Newest first" },
+  { value: "oldest", label: "Oldest first" },
+  { value: "salary_high", label: "Salary: high to low" },
+  { value: "salary_low", label: "Salary: low to high" },
+];
+
+/** Sort dropdown; writes `sort` to the URL and resets to page 1. */
+export function SortSelect() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const [, startTransition] = useTransition();
+  const current = params.get("sort") ?? "newest";
+
+  return (
+    <div className="flex items-center gap-2">
+      <ArrowUpDown className="size-4 text-muted-foreground" aria-hidden="true" />
+      <Select
+        value={current}
+        items={sortItems}
+        onValueChange={(v) => {
+          const next = new URLSearchParams(params.toString());
+          next.delete("page");
+          if (!v || v === "newest") next.delete("sort");
+          else next.set("sort", v);
+          startTransition(() =>
+            router.push(next.toString() ? `${pathname}?${next}` : pathname, { scroll: false }),
+          );
+        }}
+      >
+        <SelectTrigger className="w-44" aria-label="Sort jobs">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent align="end">
+          {sortItems.map((item) => (
+            <SelectItem key={item.value} value={item.value}>
+              {item.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }

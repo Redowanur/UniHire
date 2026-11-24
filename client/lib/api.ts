@@ -229,6 +229,7 @@ export async function fetchJobs(params?: {
   posted_within?: number;
   salary_min?: number;
   salary_max?: number;
+  sort?: string;
   page?: number;
   limit?: number;
 }): Promise<{ total_jobs: number; total_pages: number; current_page: number; jobs: JobListing[] }> {
@@ -243,6 +244,7 @@ export async function fetchJobs(params?: {
   if (params?.posted_within) query.set("posted_within", String(params.posted_within));
   if (params?.salary_min !== undefined) query.set("salary_min", String(params.salary_min));
   if (params?.salary_max !== undefined) query.set("salary_max", String(params.salary_max));
+  if (params?.sort) query.set("sort", params.sort);
   if (params?.page) query.set("page", String(params.page));
   if (params?.limit) query.set("limit", String(params.limit));
   const qs = query.toString();
