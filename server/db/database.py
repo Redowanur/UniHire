@@ -7,7 +7,7 @@ from pymongo import AsyncMongoClient
 from models.student_model import Student
 from models.university_model import University
 from models.department_model import Department
-from models.company_model import Company
+from models.admin_model import Admin
 from models.recruiter_model import Recruiter
 from models.job_model import Job
 from models.cohort_model import Cohort
@@ -16,6 +16,7 @@ from models.campus_invite_model import CampusInvite
 from models.screening_test_model import ScreeningTest
 from models.test_submission_model import TestSubmission
 from models.password_reset_model import PasswordResetCode
+from services.admin_service import seed_admin
 
 client: AsyncMongoClient | None = None
 
@@ -32,7 +33,7 @@ async def init_db():
             Student,
             University,
             Department,
-            Company,
+            Admin,
             Recruiter,
             Job,
             Cohort,
@@ -43,6 +44,7 @@ async def init_db():
             PasswordResetCode,
         ],
     )
+    await seed_admin()
 
 
 async def close_db():

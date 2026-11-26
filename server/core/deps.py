@@ -5,6 +5,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, OAuth2PasswordBearer
 
 from core.security import decode_access_token
+from models.admin_model import Admin
 from models.student_model import Student, UserType
 from models.recruiter_model import Recruiter
 from typing import Union
@@ -21,7 +22,7 @@ _credentials_error = HTTPException(
 
 async def get_current_user(
     token: str = Depends(bearer_scheme),
-) -> Union[Student, Recruiter]:
+) -> Union[Student, Recruiter, Admin]:
     try:
         payload = decode_access_token(token)
         user_id = PydanticObjectId(payload["sub"])
@@ -36,7 +37,20 @@ async def get_current_user(
     if recruiter is not None:
         return recruiter
 
+    admin = await Admin.get(user_id)
+    if admin is not None:
+        return admin
+
     raise _credentials_error
+
+
+async def require_admin(user=Depends(get_current_user)) -> Admin:
+    if user.user_type != UserType.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+    return user
 
 
 def require_roles(*roles: UserType):

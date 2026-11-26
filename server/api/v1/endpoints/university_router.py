@@ -1,5 +1,7 @@
 from beanie import PydanticObjectId
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from core.deps import require_admin
 
 from models.university_model import University
 from pymongo.errors import DuplicateKeyError
@@ -9,6 +11,7 @@ router = APIRouter(prefix="/universities", tags=["University Management"])
 @router.post(
     "",
     status_code=201,
+    dependencies=[Depends(require_admin)],
 )
 async def create_university(
     university_name: str = Query(

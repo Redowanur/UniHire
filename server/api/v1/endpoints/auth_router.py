@@ -13,6 +13,7 @@ from core.security import (
 )
 from enums.user_enums import UserType
 from models.password_reset_model import PasswordResetCode
+from models.admin_model import Admin
 from models.recruiter_model import Recruiter
 from models.student_model import Student
 from schemas.auth import (
@@ -22,6 +23,7 @@ from schemas.auth import (
     TokenResponse,
     VerifyEmailRequest,
 )
+from schemas.admin_schema import AdminResponse
 from schemas.recruiter_schema import RecruiterCreateResponse
 from schemas.student_schema import StudentResponse
 from fastapi.security import OAuth2PasswordRequestForm
@@ -33,7 +35,7 @@ PASSWORD_RESET_EXPIRE_MINUTES = 10
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-MeResponse = StudentResponse | RecruiterCreateResponse
+MeResponse = StudentResponse | RecruiterCreateResponse | AdminResponse
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -56,7 +58,16 @@ async def token(form: OAuth2PasswordRequestForm = Depends()):
 
 
 @router.get("/me", response_model=MeResponse)
-async def me(current_user: Student | Recruiter = Depends(get_current_user)):
+async def me(current_user: Student | Recruiter | Admin = Depends(get_current_user)):
+
+    if current_user.user_type == UserType.ADMIN:
+        return AdminResponse(
+            id=str(current_user.id),
+            name=current_user.name,
+            email=current_user.email,
+            user_type=current_user.user_type,
+            is_verified=True,
+        )
 
     if current_user.user_type == UserType.STUDENT:
         return StudentResponse(

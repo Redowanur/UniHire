@@ -1,11 +1,12 @@
 from fastapi import HTTPException, status
 
 from core.security import DUMMY_HASH, verify_password
+from models.admin_model import Admin
 from models.recruiter_model import Recruiter
 from models.student_model import Student
 
 
-async def authenticate(email: str, password: str) -> Student | Recruiter:
+async def authenticate(email: str, password: str) -> Student | Recruiter | Admin:
     invalid = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Incorrect email or password",
@@ -15,6 +16,8 @@ async def authenticate(email: str, password: str) -> Student | Recruiter:
     user = await Student.find_one(Student.email == email)
     if user is None:
         user = await Recruiter.find_one(Recruiter.email == email)
+    if user is None:
+        user = await Admin.find_one(Admin.email == email)
 
     if user is None:
         verify_password(password, DUMMY_HASH)  # keep timing similar

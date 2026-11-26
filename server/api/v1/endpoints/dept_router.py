@@ -1,5 +1,7 @@
 from beanie import PydanticObjectId
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+
+from core.deps import require_admin
 
 from models.department_model import Department
 from models.university_model import University
@@ -10,6 +12,7 @@ router = APIRouter(prefix="/departments", tags=["Department Management"])
 @router.post(
     "",
     status_code=201,
+    dependencies=[Depends(require_admin)],
 )
 async def create_department(
     department_name: str = Query(..., min_length=2, max_length=100),
