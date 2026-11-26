@@ -1,5 +1,11 @@
-const API_BASE_URL =
+const PUBLIC_API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+// Server-side rendering inside Docker reaches the API over the internal
+// network (API_INTERNAL_URL); the browser always uses the public URL.
+const API_BASE_URL =
+  typeof window === "undefined"
+    ? (process.env.API_INTERNAL_URL ?? PUBLIC_API_URL)
+    : PUBLIC_API_URL;
 
 export type JobSuggestion = {
   id: string;
@@ -170,6 +176,39 @@ export async function fetchDepartments(uniId: string): Promise<University[]> {
   return docs.map((doc) => ({ id: doc.department_id, name: doc.department_name }));
 }
 
+export type DepartmentRow = { id: string; name: string; university_name: string };
+
+export async function fetchAllDepartments(): Promise<DepartmentRow[]> {
+  const docs = await request<
+    { department_id: string; department_name: string; university_name: string }[]
+  >("/api/v1/departments");
+  return docs.map((doc) => ({
+    id: doc.department_id,
+    name: doc.department_name,
+    university_name: doc.university_name,
+  }));
+}
+
+/** Admin only. */
+export async function createUniversity(name: string, token: string): Promise<void> {
+  await request(`/api/v1/universities?university_name=${encodeURIComponent(name)}`, {
+    method: "POST",
+    authToken: token,
+  });
+}
+
+/** Admin only. */
+export async function createDepartment(
+  name: string,
+  universityId: string,
+  token: string,
+): Promise<void> {
+  await request(
+    `/api/v1/departments?department_name=${encodeURIComponent(name)}&university_id=${universityId}`,
+    { method: "POST", authToken: token },
+  );
+}
+
 /* ---------------------------------- */
 /* Jobs                               */
 /* ---------------------------------- */
@@ -262,7 +301,11 @@ export type JobDetail = JobListing & {
 };
 
 export async function fetchJob(jobId: string): Promise<JobDetail> {
-  return request<JobDetail>(`/api/v1/job/${jobId}`);
+  // The detail endpoint returns the raw document (`_id`); expose it as `id` like the list does.
+  const { _id, ...job } = await request<Omit<JobDetail, "id"> & { _id: string }>(
+    `/api/v1/job/${jobId}`,
+  );
+  return { ...job, id: _id } as JobDetail;
 }
 
 export type JobCreatePayload = {
@@ -309,6 +352,7 @@ export async function deleteJob(jobId: string, token: string): Promise<{ message
 export async function fetchStats(): Promise<{
   universities: number;
   cohorts: number;
+  students: number;
   recruiters: number;
 }> {
   return request("/api/v1/stats");

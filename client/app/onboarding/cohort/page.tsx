@@ -66,7 +66,8 @@ export default function CohortOnboardingPage() {
 
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/login");
-  }, [status, router]);
+    else if (user?.user_type === "admin") router.replace("/admin");
+  }, [status, user?.user_type, router]);
 
   useEffect(() => {
     if (!accessToken || !user || user.cohort_id) return;

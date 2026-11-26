@@ -28,7 +28,7 @@ import { fetchScreeningTest, submitScreeningTest, type ScreeningTestDetail } fro
 function TakeScreeningTestPageContent() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const { status, accessToken } = useAuth();
+  const { user, status, accessToken } = useAuth();
 
   const [test, setTest] = useState<ScreeningTestDetail | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -37,7 +37,8 @@ function TakeScreeningTestPageContent() {
 
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/login");
-  }, [status, router]);
+    else if (user?.user_type === "admin") router.replace("/admin");
+  }, [status, user?.user_type, router]);
 
   useEffect(() => {
     if (!accessToken) return;

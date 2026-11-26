@@ -10,6 +10,14 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
@@ -36,9 +44,9 @@ function dashboardHref(user: { user_type: string; cohort_id?: string | null }) {
   return user.cohort_id ? "/cohort" : "/onboarding/cohort";
 }
 
-function initialsOf(name: string) {
+function initialsOf(name?: string) {
   return (
-    name
+    (name ?? "")
       .split(" ")
       .filter(Boolean)
       .slice(0, 2)
@@ -49,9 +57,12 @@ function initialsOf(name: string) {
 
 function NavLinks({ mobile, onNavigate }: { mobile?: boolean; onNavigate?: () => void }) {
   const pathname = usePathname();
+  const { user } = useAuth();
+  // The Admin menu is only shown to the logged-in admin
+  const links = user?.user_type === "admin" ? [...navLinks, { label: "Admin", href: "/admin" }] : navLinks;
   return (
     <>
-      {navLinks.map((link) => {
+      {links.map((link) => {
         const active = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
         return (
           <Link
@@ -75,13 +86,42 @@ function NavLinks({ mobile, onNavigate }: { mobile?: boolean; onNavigate?: () =>
   );
 }
 
+function LogoutDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const { signOut } = useAuth();
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Log out?</DialogTitle>
+          <DialogDescription>You&apos;ll need to log in again to access your account.</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              onOpenChange(false);
+              signOut();
+            }}
+          >
+            Log out
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function UserMenu() {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
+  const [confirmOpen, setConfirmOpen] = useState(false);
   if (!user) return null;
   const typeLabel =
     user.user_type === "recruiter" ? "Recruiter" : user.user_type === "student" ? "Student" : "Admin";
 
   return (
+    <>
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
@@ -105,16 +145,20 @@ function UserMenu() {
         </DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem render={<Link href={dashboardHref(user)} />} className="gap-2 py-2.5">
-          <LayoutDashboard className="size-4" />
-          Dashboard
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={signOut} className="gap-2 py-2.5">
+        {user.user_type !== "admin" ? (
+          <DropdownMenuItem render={<Link href={dashboardHref(user)} />} className="gap-2 py-2.5">
+            <LayoutDashboard className="size-4" />
+            Dashboard
+          </DropdownMenuItem>
+        ) : null}
+        <DropdownMenuItem onClick={() => setConfirmOpen(true)} className="gap-2 py-2.5">
           <LogOut className="size-4" />
           Log out
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+    <LogoutDialog open={confirmOpen} onOpenChange={setConfirmOpen} />
+    </>
   );
 }
 
@@ -136,10 +180,12 @@ function AuthArea() {
 
 function MobileMenu() {
   const [open, setOpen] = useState(false);
-  const { user, status, signOut } = useAuth();
+  const { user, status } = useAuth();
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const close = () => setOpen(false);
 
   return (
+    <>
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger
         render={<Button variant="outline" size="icon" aria-label="Open menu" className="md:hidden" />}
@@ -175,19 +221,21 @@ function MobileMenu() {
                   <p className="truncate text-xs text-muted-foreground">{user.email}</p>
                 </div>
               </div>
-              <Link
-                href={dashboardHref(user)}
-                onClick={close}
-                className={buttonVariants({ size: "lg" })}
-              >
-                <LayoutDashboard /> Dashboard
-              </Link>
+              {user.user_type !== "admin" ? (
+                <Link
+                  href={dashboardHref(user)}
+                  onClick={close}
+                  className={buttonVariants({ size: "lg" })}
+                >
+                  <LayoutDashboard /> Dashboard
+                </Link>
+              ) : null}
               <Button
                 variant="outline"
                 size="lg"
                 onClick={() => {
                   close();
-                  signOut();
+                  setConfirmOpen(true);
                 }}
               >
                 <LogOut /> Log out
@@ -210,6 +258,8 @@ function MobileMenu() {
         </div>
       </SheetContent>
     </Sheet>
+    <LogoutDialog open={confirmOpen} onOpenChange={setConfirmOpen} />
+    </>
   );
 }
 

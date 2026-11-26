@@ -92,6 +92,7 @@ export default function CohortDashboardPage() {
 
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/login");
+    else if (user?.user_type === "admin") router.replace("/admin");
     else if (user && user.user_type === "recruiter") router.replace("/recruiter/dashboard");
     else if (user && user.user_type === "student" && !user.cohort_id) router.replace("/onboarding/cohort");
   }, [status, user, router]);
