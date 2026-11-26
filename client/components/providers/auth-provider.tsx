@@ -35,7 +35,9 @@ const USER_KEY = "user";
 function readStoredUser(): AuthUser | null {
   try {
     const raw = localStorage.getItem(USER_KEY);
-    return raw ? (JSON.parse(raw) as AuthUser) : null;
+    const parsed = raw ? (JSON.parse(raw) as Partial<AuthUser>) : null;
+    // Ignore stale/malformed cache entries (e.g. from an older app version)
+    return parsed && typeof parsed.name === "string" ? (parsed as AuthUser) : null;
   } catch {
     return null;
   }
@@ -82,10 +84,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setStatus("authenticated");
           localStorage.setItem(USER_KEY, JSON.stringify(fresh));
         })
-        .catch(() => {
+        .catch((err: { status?: number }) => {
           if (cancelled) return;
-          if (!cached) {
+          // An expired/invalid token must log out even when a cached profile exists
+          const rejected = err?.status === 401 || err?.status === 403;
+          if (!cached || rejected) {
             clearStorage();
+            setUser(null);
+            setAccessToken(null);
             setStatus("unauthenticated");
           }
         });
