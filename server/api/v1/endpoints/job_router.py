@@ -29,6 +29,12 @@ async def create_job(job: JobCreateRequest, user: Recruiter = Depends(get_curren
             detail="Only recruiters can create jobs",
         )
 
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Verify your email before posting jobs",
+        )
+
     data = job.model_dump()
     if data.get("salary_min") is None and data.get("salary_max") is None:
         data["salary_min"], data["salary_max"] = parse_salary_range(job.salary)

@@ -143,6 +143,7 @@ export default function RecruiterDashboardPage() {
 
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/login");
+    else if (user?.user_type === "admin") router.replace("/admin");
     else if (user && user.user_type === "student") router.replace("/cohort");
   }, [status, user, router]);
 
@@ -252,10 +253,15 @@ export default function RecruiterDashboardPage() {
             <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Recruiter dashboard</h1>
             <p className="mt-1 text-sm text-muted-foreground">{user.company_name}</p>
           </div>
-          <Button onClick={() => setShowJobForm(true)} className="gap-2">
+          <Button onClick={() => setShowJobForm(true)} disabled={!user.is_verified} className="gap-2">
             <Plus /> Post a job
           </Button>
         </div>
+        {!user.is_verified ? (
+          <p className="mt-4 rounded-xl border border-dashed bg-card px-4 py-3 text-sm text-muted-foreground">
+            Verify your email to post jobs and receive campus invites. Check your inbox for the verification link.
+          </p>
+        ) : null}
 
         <div className="animate-fade-up mt-6" style={{ animationDelay: "100ms" }}>
           <Tabs defaultValue="invites">
