@@ -1,6 +1,10 @@
-# UniHire
+<p align="center">
+  <img src="client/public/logo.png" alt="UniHire logo" width="160" />
+</p>
 
-**An on-campus placement platform that connects final-year students with recruiters.**
+<h1 align="center">UniHire</h1>
+
+<p align="center"><strong>An on-campus placement platform that connects final-year students with recruiters.</strong></p>
 
 Students form cohorts by university and department, then invite companies to their campus. Recruiters browse the cohorts that contacted them, inspect students, and run an online screening test to shortlist candidates before the campus visit.
 
