@@ -9,12 +9,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { fetchStats } from "@/lib/api";
 
 async function HeroStats() {
-  const stats = await fetchStats().catch(() => ({ universities: 0, cohorts: 0, recruiters: 0 }));
+  const stats = await fetchStats().catch(() => ({ universities: 0, cohorts: 0, students: 0, recruiters: 0 }));
 
   const items = [
     { icon: Building2, value: stats.universities, label: "Universities" },
-    { icon: Users, value: stats.cohorts, label: "Cohorts" },
-    { icon: Briefcase, value: stats.recruiters, label: "Verified recruiters" },
+    { icon: Users, value: stats.students, label: "Students" },
+    { icon: Briefcase, value: stats.recruiters, label: "Recruiters" },
   ];
 
   return (
