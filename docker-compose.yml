@@ -1,12 +1,44 @@
 services:
-  placement-portal-mongodb:
+  mongodb:
     image: mongo:7
-    container_name: placement-portal-mongodb
+    container_name: unihire-mongodb
     restart: unless-stopped
     ports:
       - "27018:27017"
     volumes:
       - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  server:
+    build: ./server
+    container_name: unihire-server
+    restart: unless-stopped
+    env_file: ./server/.env
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  client:
+    build:
+      context: ./client
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    container_name: unihire-client
+    restart: unless-stopped
+    environment:
+      API_INTERNAL_URL: http://server:8000
+    depends_on:
+      - server
+    ports:
+      - "3000:3000"
 
 volumes:
   mongo_data:
