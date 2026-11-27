@@ -8,6 +8,9 @@ WORKDIR /app
 # NEXT_PUBLIC_* values are inlined at build time (browser-facing API URL).
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+# Baked into the /api/v1 rewrite in next.config.ts
+ARG API_INTERNAL_URL=http://server:8000
+ENV API_INTERNAL_URL=$API_INTERNAL_URL
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN bun run build

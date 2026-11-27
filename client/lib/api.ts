@@ -2,10 +2,27 @@ const PUBLIC_API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 // Server-side rendering inside Docker reaches the API over the internal
 // network (API_INTERNAL_URL); the browser always uses the public URL.
-const API_BASE_URL =
+
+/**
+ * The API address for the browser.
+ * - A real (non-loopback) NEXT_PUBLIC_API_URL is used as is.
+ * - On localhost the baked-in loopback URL works as is.
+ * - Opened from another device (LAN IP, Cloudflare/ngrok tunnel, ...), "localhost" would point
+ *   at that device, so go through the site's own origin; Next forwards /api/v1/* to the API.
+ */
+function browserApiUrl(): string {
+  const url = new URL(PUBLIC_API_URL);
+  const loopback = (host: string) => ["localhost", "127.0.0.1", "[::1]"].includes(host);
+  if (loopback(url.hostname) && !loopback(window.location.hostname)) {
+    return window.location.origin;
+  }
+  return url.origin;
+}
+
+export const API_BASE_URL =
   typeof window === "undefined"
     ? (process.env.API_INTERNAL_URL ?? PUBLIC_API_URL)
-    : PUBLIC_API_URL;
+    : browserApiUrl();
 
 export type JobSuggestion = {
   id: string;
@@ -399,6 +416,18 @@ export async function fetchCohort(cohortId: string, token: string): Promise<Coho
   return request(`/api/v1/cohorts/${cohortId}`, { authToken: token });
 }
 
+export async function renameCohort(
+  cohortId: string,
+  name: string,
+  token: string,
+): Promise<CohortSummary> {
+  return request(`/api/v1/cohorts/${cohortId}`, {
+    method: "PATCH",
+    authToken: token,
+    body: JSON.stringify({ name }),
+  });
+}
+
 export async function joinCohort(cohortId: string, token: string): Promise<CohortDetail> {
   return request(`/api/v1/cohorts/${cohortId}/join`, { method: "POST", authToken: token });
 }
@@ -415,18 +444,6 @@ export type InviteLink = {
   created_by: string;
   created_at: string;
 };
-
-export async function renameCohort(
-  cohortId: string,
-  name: string,
-  token: string,
-): Promise<CohortSummary> {
-  return request(`/api/v1/cohorts/${cohortId}`, {
-    method: "PATCH",
-    authToken: token,
-    body: JSON.stringify({ name }),
-  });
-}
 
 export type InviteLinkPreview = {
   cohort_id: string;
@@ -535,6 +552,9 @@ export type ScreeningTestSummary = {
   title: string;
   description: string | null;
   question_count: number;
+  start_time: string;
+  duration_minutes: number;
+  ends_at: string;
   created_at: string;
 };
 
@@ -546,9 +566,16 @@ export type ScreeningTestDetail = {
   title: string;
   description: string | null;
   questions: QuestionPublic[] | QuestionFull[];
+  start_time: string;
+  duration_minutes: number;
+  ends_at: string;
+  server_time: string;
+  phase: "upcoming" | "live" | "ended";
   created_at: string;
   is_owner: boolean;
   already_submitted: boolean;
+  /** Owner only: students who have opened the exam. Questions lock once this is above 0. */
+  attempt_count: number;
   my_score: number | null;
   my_total: number | null;
 };
@@ -559,58 +586,19 @@ export async function createScreeningTest(
     title: string;
     description?: string;
     questions: QuestionDraft[];
+    /** ISO timestamp (UTC) */
+    start_time: string;
+    duration_minutes: number;
   },
   token: string,
 ): Promise<ScreeningTestDetail> {
   return request("/api/v1/screening-tests", {
     method: "POST",
-  start_time: string;
-  duration_minutes: number;
-  ends_at: string;
     authToken: token,
     body: JSON.stringify(payload),
   });
 }
 
-export async function fetchScreeningTests(
-  token: string,
-  params?: { cohort_id?: string; campus_invite_id?: string },
-): Promise<ScreeningTestSummary[]> {
-  const query = new URLSearchParams();
-  if (params?.cohort_id) query.set("cohort_id", params.cohort_id);
-  start_time: string;
-  duration_minutes: number;
-  ends_at: string;
-  server_time: string;
-  phase: "upcoming" | "live" | "ended";
-  if (params?.campus_invite_id) query.set("campus_invite_id", params.campus_invite_id);
-  const qs = query.toString();
-  return request(`/api/v1/screening-tests${qs ? `?${qs}` : ""}`, { authToken: token });
-  /** Owner only: students who have opened the exam. Questions lock once this is above 0. */
-  attempt_count: number;
-}
-
-export async function fetchScreeningTest(testId: string, token: string): Promise<ScreeningTestDetail> {
-  return request(`/api/v1/screening-tests/${testId}`, { authToken: token });
-}
-
-export async function submitScreeningTest(
-  testId: string,
-  answers: Record<string, number>,
-  token: string,
-    /** ISO timestamp (UTC) */
-    start_time: string;
-    duration_minutes: number;
-): Promise<{ score: number; total: number }> {
-  return request(`/api/v1/screening-tests/${testId}/submit`, {
-    method: "POST",
-    authToken: token,
-    body: JSON.stringify({ answers }),
-  });
-}
-
-export type SubmissionRow = {
-  student_id: string;
 export async function updateScreeningTest(
   testId: string,
   payload: {
@@ -629,21 +617,21 @@ export async function updateScreeningTest(
   });
 }
 
-  student_name: string;
-  reg_no: number;
-  score: number;
-  total: number;
-  shortlisted: boolean;
-  submitted_at: string;
-};
-
-export async function fetchSubmissions(testId: string, token: string): Promise<SubmissionRow[]> {
-  return request(`/api/v1/screening-tests/${testId}/submissions`, { authToken: token });
+export async function fetchScreeningTests(
+  token: string,
+  params?: { cohort_id?: string; campus_invite_id?: string },
+): Promise<ScreeningTestSummary[]> {
+  const query = new URLSearchParams();
+  if (params?.cohort_id) query.set("cohort_id", params.cohort_id);
+  if (params?.campus_invite_id) query.set("campus_invite_id", params.campus_invite_id);
+  const qs = query.toString();
+  return request(`/api/v1/screening-tests${qs ? `?${qs}` : ""}`, { authToken: token });
 }
 
-export async function toggleShortlist(
-  testId: string,
-  studentId: string,
+export async function fetchScreeningTest(testId: string, token: string): Promise<ScreeningTestDetail> {
+  return request(`/api/v1/screening-tests/${testId}`, { authToken: token });
+}
+
 export type StartedAttempt = {
   questions: QuestionPublic[];
   ends_at: string;
@@ -670,6 +658,36 @@ export async function reportViolation(
   });
 }
 
+export async function submitScreeningTest(
+  testId: string,
+  answers: Record<string, number>,
+  token: string,
+): Promise<{ score: number; total: number }> {
+  return request(`/api/v1/screening-tests/${testId}/submit`, {
+    method: "POST",
+    authToken: token,
+    body: JSON.stringify({ answers }),
+  });
+}
+
+export type SubmissionRow = {
+  student_id: string;
+  student_name: string;
+  reg_no: number;
+  score: number;
+  total: number;
+  shortlisted: boolean;
+  violation_count: number;
+  submitted_at: string;
+};
+
+export async function fetchSubmissions(testId: string, token: string): Promise<SubmissionRow[]> {
+  return request(`/api/v1/screening-tests/${testId}/submissions`, { authToken: token });
+}
+
+export async function toggleShortlist(
+  testId: string,
+  studentId: string,
   shortlisted: boolean,
   token: string,
 ): Promise<SubmissionRow> {
@@ -679,7 +697,6 @@ export async function reportViolation(
     body: JSON.stringify({ shortlisted }),
   });
 }
-  violation_count: number;
 
 
 /** "Fri 27 Nov, 9:00 PM" in the viewer's own time zone. */
