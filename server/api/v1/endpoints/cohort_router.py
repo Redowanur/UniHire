@@ -17,6 +17,7 @@ from schemas.cohort_schema import (
     CohortDetail,
     CohortMemberInfo,
     CohortSummary,
+    CohortUpdateRequest,
 )
 
 router = APIRouter(prefix="/cohorts", tags=["Cohort Management"])
@@ -176,6 +177,31 @@ async def get_cohort(
         is_owner=is_owner,
         members=members,
     )
+
+
+@router.patch("/{cohort_id}")
+async def rename_cohort(
+    cohort_id: PydanticObjectId,
+    data: CohortUpdateRequest,
+    user: Student | Recruiter = Depends(get_current_user),
+) -> CohortSummary:
+    """Any member of the cohort can rename it."""
+    student = _require_verified_student(user)
+
+    cohort = await Cohort.get(cohort_id)
+    if not cohort:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cohort not found")
+    if student.cohort_id != cohort.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only members of this cohort can rename it",
+        )
+
+    cohort.name = " ".join(data.name.split())
+    if len(cohort.name) < 2:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Name is too short")
+    await cohort.save()
+    return await _build_summary(cohort)
 
 
 @router.post("/{cohort_id}/join", status_code=status.HTTP_200_OK)

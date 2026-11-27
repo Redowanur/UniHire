@@ -12,6 +12,10 @@ class CohortCreateRequest(BaseModel):
     description: str | None = Field(default=None, max_length=500)
 
 
+class CohortUpdateRequest(BaseModel):
+    name: str = Field(min_length=2, max_length=100)
+
+
 class CohortSummary(BaseModel):
     id: str
     name: str

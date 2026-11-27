@@ -11,6 +11,7 @@ import {
   Copy,
   FileText,
   Link2,
+  Pencil,
   Plus,
   Users,
   X,
@@ -22,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -50,6 +52,8 @@ import {
   fetchInviteLinks,
   fetchMyCampusInvites,
   fetchScreeningTests,
+  formatExamTime,
+  renameCohort,
   revokeInviteLink,
   type CampusInvite,
   type CohortDetail,
@@ -81,6 +85,9 @@ export default function CohortDashboardPage() {
   const { user, status, accessToken } = useAuth();
 
   const [cohort, setCohort] = useState<CohortDetail | null>(null);
+  const [renaming, setRenaming] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [savingName, setSavingName] = useState(false);
   const [invites, setInvites] = useState<CampusInvite[]>([]);
   const [links, setLinks] = useState<InviteLink[]>([]);
   const [tests, setTests] = useState<ScreeningTestSummary[]>([]);
@@ -116,6 +123,27 @@ export default function CohortDashboardPage() {
         setLoadFailed(true);
       });
   }, [accessToken, user?.cohort_id]);
+
+  async function handleRename(event: FormEvent) {
+    event.preventDefault();
+    if (!accessToken || !cohort) return;
+    const name = nameDraft.trim();
+    if (name === cohort.name) {
+      setRenaming(false);
+      return;
+    }
+    setSavingName(true);
+    try {
+      const updated = await renameCohort(cohort.id, name, accessToken);
+      setCohort((current) => (current ? { ...current, name: updated.name } : current));
+      setRenaming(false);
+      toast.success("Cohort renamed");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't rename the cohort.");
+    } finally {
+      setSavingName(false);
+    }
+  }
 
   async function handleCreateLink(event: FormEvent) {
     event.preventDefault();
@@ -192,7 +220,47 @@ export default function CohortDashboardPage() {
           <CardContent>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
-                <h1 className="text-2xl font-semibold tracking-tight">{cohort.name}</h1>
+                {renaming ? (
+                  <form onSubmit={handleRename} className="flex items-center gap-2">
+                    <Input
+                      autoFocus
+                      required
+                      minLength={2}
+                      maxLength={100}
+                      aria-label="Cohort name"
+                      value={nameDraft}
+                      onChange={(event) => setNameDraft(event.target.value)}
+                      className="h-10 min-w-0 text-lg font-semibold sm:w-80"
+                    />
+                    <Button type="submit" size="icon" disabled={savingName} aria-label="Save name">
+                      {savingName ? <Spinner /> : <Check />}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      onClick={() => setRenaming(false)}
+                      aria-label="Cancel renaming"
+                    >
+                      <X />
+                    </Button>
+                  </form>
+                ) : (
+                  <div className="flex items-center gap-1">
+                    <h1 className="text-2xl font-semibold tracking-tight">{cohort.name}</h1>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Rename cohort"
+                      onClick={() => {
+                        setNameDraft(cohort.name);
+                        setRenaming(true);
+                      }}
+                    >
+                      <Pencil />
+                    </Button>
+                  </div>
+                )}
                 <p className="mt-1 text-sm text-muted-foreground">
                   {cohort.university_name} · {cohort.dept_name} · Batch {cohort.batch_year}
                 </p>
@@ -303,7 +371,7 @@ export default function CohortDashboardPage() {
                         <div className="min-w-0">
                           <p className="truncate text-sm font-semibold">{test.title}</p>
                           <p className="text-xs text-muted-foreground">
-                            {test.company_name} · {test.question_count} questions
+                            {test.company_name} · {test.question_count} questions · {formatExamTime(test.start_time)} · {test.duration_minutes} min
                           </p>
                         </div>
                         <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />

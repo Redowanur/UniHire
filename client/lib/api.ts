@@ -416,6 +416,18 @@ export type InviteLink = {
   created_at: string;
 };
 
+export async function renameCohort(
+  cohortId: string,
+  name: string,
+  token: string,
+): Promise<CohortSummary> {
+  return request(`/api/v1/cohorts/${cohortId}`, {
+    method: "PATCH",
+    authToken: token,
+    body: JSON.stringify({ name }),
+  });
+}
+
 export type InviteLinkPreview = {
   cohort_id: string;
   cohort_name: string;
