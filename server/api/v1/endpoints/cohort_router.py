@@ -68,7 +68,7 @@ async def create_cohort(
 
     cohort = Cohort(
         name=data.name,
-        university_id=await _university_id_for_dept(student.dept_id),
+        university_id=student.university_id,
         dept_id=student.dept_id,
         batch_year=data.batch_year,
         description=data.description,
@@ -97,19 +97,14 @@ async def create_cohort(
     )
 
 
-async def _university_id_for_dept(dept_id: PydanticObjectId) -> PydanticObjectId:
-    dept = await Department.get(dept_id)
-    if not dept:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Department not found")
-    return dept.university_id
-
-
 @router.get("/suggested")
 async def suggested_cohorts(
     user: Student | Recruiter = Depends(get_current_user),
 ) -> list[CohortSummary]:
     student = _require_verified_student(user)
-    cohorts = await Cohort.find(Cohort.dept_id == student.dept_id).sort("-created_at").to_list()
+    cohorts = await Cohort.find(
+        Cohort.university_id == student.university_id, Cohort.dept_id == student.dept_id
+    ).sort("-created_at").to_list()
     return [await _build_summary(cohort) for cohort in cohorts]
 
 

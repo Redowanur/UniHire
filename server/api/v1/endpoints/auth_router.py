@@ -75,6 +75,7 @@ async def me(current_user: Student | Recruiter | Admin = Depends(get_current_use
             name=current_user.name,
             email=current_user.email,
             reg_no=current_user.reg_no,
+            university_id=current_user.university_id,
             dept_id=current_user.dept_id,
             phone=current_user.phone,
             user_type=current_user.user_type,

@@ -1,5 +1,5 @@
 from beanie import PydanticObjectId
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 from enums.student_enums import PlacementStatus
 from enums.user_enums import UserType
@@ -11,9 +11,20 @@ class StudentCreate(BaseModel):
     email: EmailStr
     reg_no: int = Field(gt=0)
     password: str = Field(min_length=8)
-    dept_id: PydanticObjectId
-    uni_id: PydanticObjectId
+    # Pick from the list (id) or type a new one (name); one of each pair is required
+    uni_id: PydanticObjectId | None = None
+    uni_name: str | None = Field(default=None, min_length=2, max_length=100)
+    dept_id: PydanticObjectId | None = None
+    dept_name: str | None = Field(default=None, min_length=2, max_length=100)
     phone: str
+
+    @model_validator(mode="after")
+    def _need_university_and_department(self):
+        if not self.uni_id and not (self.uni_name and self.uni_name.strip()):
+            raise ValueError("Select or enter your university")
+        if not self.dept_id and not (self.dept_name and self.dept_name.strip()):
+            raise ValueError("Select or enter your department")
+        return self
 
     @field_validator("email")
     @classmethod
@@ -42,6 +53,7 @@ class StudentResponse(BaseModel):
     name: str
     email: EmailStr
     reg_no: int
+    university_id: PydanticObjectId
     dept_id: PydanticObjectId
     phone: str
     user_type: UserType

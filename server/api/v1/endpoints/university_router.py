@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from core.deps import require_admin
 
 from models.university_model import University
+from services.catalog_service import _clean, _exact_ci
 from pymongo.errors import DuplicateKeyError
 
 router = APIRouter(prefix="/universities", tags=["University Management"])
@@ -20,7 +21,8 @@ async def create_university(
     ),
 ):
     
-    uni = await University.find_one({"name": university_name})
+    university_name = _clean(university_name)
+    uni = await University.find_one(_exact_ci(university_name))
     
     if uni:
         raise HTTPException(
@@ -47,7 +49,7 @@ async def create_university(
     status_code=200,
 )
 async def get_universities():
-    universities = await University.find_all().to_list()
+    universities = await University.find_all().sort("name").to_list()
     return universities
 
 @router.get(

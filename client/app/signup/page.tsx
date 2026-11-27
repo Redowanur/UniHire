@@ -10,9 +10,9 @@ import {
   PasswordInput,
   PhoneField,
   SubmitButton,
-  SelectField,
   SwitchAuthLink,
 } from "@/components/auth/form-fields";
+import { CreatableSelect, type CreatableValue } from "@/components/ui/creatable-select";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
@@ -48,8 +48,8 @@ function StudentSignUpForm() {
   });
   const [universities, setUniversities] = useState<University[]>([]);
   const [departments, setDepartments] = useState<University[]>([]);
-  const [uniId, setUniId] = useState("");
-  const [deptId, setDeptId] = useState("");
+  const [uni, setUni] = useState<CreatableValue>({ id: "", name: "" });
+  const [dept, setDept] = useState<CreatableValue>({ id: "", name: "" });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -67,19 +67,18 @@ function StudentSignUpForm() {
   }, []);
 
   useEffect(() => {
-    if (!uniId) return;
     let cancelled = false;
-    fetchDepartments(uniId)
+    fetchDepartments()
       .then((data) => {
         if (!cancelled) setDepartments(data);
       })
       .catch(() => {
-        if (!cancelled) toast.error("Couldn't load departments. Try selecting again.");
+        if (!cancelled) toast.error("Couldn't load departments. Refresh to try again.");
       });
     return () => {
       cancelled = true;
     };
-  }, [uniId]);
+  }, []);
 
   function update(field: keyof typeof form, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -100,8 +99,8 @@ function StudentSignUpForm() {
         email: form.email.trim().toLowerCase(),
         reg_no: Number(form.reg_no),
         password: form.password,
-        dept_id: deptId,
-        uni_id: uniId,
+        ...(uni.id ? { uni_id: uni.id } : { uni_name: uni.name.trim() }),
+        ...(dept.id ? { dept_id: dept.id } : { dept_name: dept.name.trim() }),
         phone: form.phone.trim(),
       });
 
@@ -163,29 +162,23 @@ function StudentSignUpForm() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField label="University" htmlFor="student-university">
-          <SelectField
+          <CreatableSelect
             id="student-university"
-            value={uniId}
-            placeholder="Select university"
+            value={uni}
+            onChange={setUni}
             options={universities}
+            placeholder="Select or type your university"
             required
-            onChange={(value) => {
-              setUniId(value);
-              // Reset the dependent department selection
-              setDepartments([]);
-              setDeptId("");
-            }}
           />
         </FormField>
         <FormField label="Department" htmlFor="student-department">
-          <SelectField
+          <CreatableSelect
             id="student-department"
-            value={deptId}
-            placeholder={uniId ? "Select department" : "Pick university first"}
+            value={dept}
+            onChange={setDept}
             options={departments}
-            disabled={!uniId}
+            placeholder="Select or type your department"
             required
-            onChange={setDeptId}
           />
         </FormField>
       </div>

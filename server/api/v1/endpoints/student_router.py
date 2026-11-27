@@ -9,6 +9,8 @@ from core.deps import get_current_user
 from enums.user_enums import UserType
 from enums.student_enums import PlacementStatus
 from models.department_model import Department
+from models.university_model import University
+from services.catalog_service import get_or_create_department, get_or_create_university
 
 router = APIRouter(prefix="/students", tags=["Student Management"])
 
@@ -20,19 +22,27 @@ router = APIRouter(prefix="/students", tags=["Student Management"])
 )
 async def create_student(student_data: StudentCreate):
         
-    dept = await Department.find_one({"_id": student_data.dept_id, "university_id": student_data.uni_id})
-    if not dept:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Department not found for the given university",
-        )
+    if student_data.uni_id:
+        university = await University.get(student_data.uni_id)
+        if not university:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="University not found")
+    else:
+        university = await get_or_create_university(student_data.uni_name)
+
+    if student_data.dept_id:
+        dept = await Department.get(student_data.dept_id)
+        if not dept:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Department not found")
+    else:
+        dept = await get_or_create_department(student_data.dept_name)
 
     student = Student(
         name=student_data.name,
         email=student_data.email,
         reg_no=student_data.reg_no,
         password_hash=hash_password(student_data.password),
-        dept_id=student_data.dept_id,
+        university_id=university.id,
+        dept_id=dept.id,
         phone=student_data.phone,
         user_type=UserType.STUDENT,
         is_verified=False,
@@ -53,6 +63,7 @@ async def create_student(student_data: StudentCreate):
         name=student.name,
         email=student.email,
         reg_no=student.reg_no,
+        university_id=student.university_id,
         dept_id=student.dept_id,
         phone=student.phone,
         user_type=student.user_type,
@@ -80,6 +91,7 @@ async def get_student(student_id: PydanticObjectId):
         name=student.name,
         email=student.email,
         reg_no=student.reg_no,
+        university_id=student.university_id,
         dept_id=student.dept_id,
         phone=student.phone,
         user_type=student.user_type,
@@ -131,6 +143,7 @@ async def update_student(
         name=student.name,
         email=student.email,
         reg_no=student.reg_no,
+        university_id=student.university_id,
         dept_id=student.dept_id,
         phone=student.phone,
         user_type=student.user_type,

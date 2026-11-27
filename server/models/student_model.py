@@ -15,6 +15,7 @@ class Student(Document):
     email: Annotated[EmailStr, Indexed(unique=True)]
     reg_no: Annotated[int, Indexed(unique=True)] = Field(gt=0)
     password_hash: str
+    university_id: PydanticObjectId
     dept_id: PydanticObjectId
     phone: str
     user_type: UserType = UserType.STUDENT

@@ -126,8 +126,11 @@ export type StudentSignUpPayload = {
   email: string;
   reg_no: number;
   password: string;
-  dept_id: string;
-  uni_id: string;
+  /** Send the id when picked from the list, or the typed name for a new entry. */
+  uni_id?: string;
+  uni_name?: string;
+  dept_id?: string;
+  dept_name?: string;
   phone: string;
 };
 
@@ -169,24 +172,11 @@ export async function fetchUniversities(): Promise<University[]> {
   return docs.map((doc) => ({ id: String(doc._id ?? doc.id), name: doc.name }));
 }
 
-export async function fetchDepartments(uniId: string): Promise<University[]> {
-  const docs = await request<
-    { department_id: string; department_name: string }[]
-  >(`/api/v1/departments?university_id=${uniId}`);
+export async function fetchDepartments(): Promise<University[]> {
+  const docs = await request<{ department_id: string; department_name: string }[]>(
+    "/api/v1/departments",
+  );
   return docs.map((doc) => ({ id: doc.department_id, name: doc.department_name }));
-}
-
-export type DepartmentRow = { id: string; name: string; university_name: string };
-
-export async function fetchAllDepartments(): Promise<DepartmentRow[]> {
-  const docs = await request<
-    { department_id: string; department_name: string; university_name: string }[]
-  >("/api/v1/departments");
-  return docs.map((doc) => ({
-    id: doc.department_id,
-    name: doc.department_name,
-    university_name: doc.university_name,
-  }));
 }
 
 /** Admin only. */
@@ -198,15 +188,11 @@ export async function createUniversity(name: string, token: string): Promise<voi
 }
 
 /** Admin only. */
-export async function createDepartment(
-  name: string,
-  universityId: string,
-  token: string,
-): Promise<void> {
-  await request(
-    `/api/v1/departments?department_name=${encodeURIComponent(name)}&university_id=${universityId}`,
-    { method: "POST", authToken: token },
-  );
+export async function createDepartment(name: string, token: string): Promise<void> {
+  await request(`/api/v1/departments?department_name=${encodeURIComponent(name)}`, {
+    method: "POST",
+    authToken: token,
+  });
 }
 
 /* ---------------------------------- */
