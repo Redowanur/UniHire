@@ -4,6 +4,9 @@ import smtplib
 from datetime import datetime, timedelta, timezone
 from html import escape
 from email.message import EmailMessage
+from email.utils import parseaddr
+
+import httpx
 
 from anyio import to_thread
 
@@ -15,6 +18,15 @@ SMTP_USERNAME = os.getenv("SMTP_USERNAME")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 EMAIL_FROM = os.getenv("EMAIL_FROM", "Job Portal <no-reply@jobportal.local>")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
+# HTTPS email APIs. Hosts such as Render block outbound SMTP, so prefer one of these when set.
+MAILJET_API_KEY = os.getenv("MAILJET_API_KEY")
+MAILJET_SECRET_KEY = os.getenv("MAILJET_SECRET_KEY")
+MAILJET_API_URL = os.getenv("MAILJET_API_URL", "https://api.mailjet.com/v3.1/send")
+BREVO_API_KEY = os.getenv("BREVO_API_KEY")
+BREVO_API_URL = os.getenv("BREVO_API_URL", "https://api.brevo.com/v3/smtp/email")
+RESEND_API_KEY = os.getenv("RESEND_API_KEY")
+RESEND_API_URL = os.getenv("RESEND_API_URL", "https://api.resend.com/emails")
 
 
 class EmailDeliveryError(Exception):
@@ -78,6 +90,14 @@ async def send_email(to: str, subject: str, html: str) -> None:
     message.set_content("Please view this email in an HTML client.")
     message.add_alternative(html, subtype="html")
 
+    if (MAILJET_API_KEY and MAILJET_SECRET_KEY) or BREVO_API_KEY or RESEND_API_KEY:
+        try:
+            await _send_via_api(to, subject, html)
+        except Exception as exc:
+            logger.exception("Email API delivery to %s failed", to)
+            raise EmailDeliveryError(str(exc)) from exc
+        return
+
     if not SMTP_HOST:
         # Dev mode: no SMTP configured — dump the email content to the logs
         body = message.get_body(preferencelist=("html", "plain")) or message
@@ -95,6 +115,47 @@ async def send_email(to: str, subject: str, html: str) -> None:
         # Log the real cause (blocked port, bad credentials, timeout...) for the server logs
         logger.exception("SMTP delivery to %s failed via %s:%s", to, SMTP_HOST, SMTP_PORT)
         raise EmailDeliveryError(str(exc)) from exc
+
+
+async def _send_via_api(to: str, subject: str, html: str) -> None:
+    """Send through Mailjet, Brevo or Resend's HTTPS API (works where SMTP ports are blocked)."""
+    sender_name, sender_email = parseaddr(EMAIL_FROM)
+    async with httpx.AsyncClient(timeout=15) as client:
+        if MAILJET_API_KEY and MAILJET_SECRET_KEY:
+            response = await client.post(
+                MAILJET_API_URL,
+                auth=(MAILJET_API_KEY, MAILJET_SECRET_KEY),
+                json={
+                    "Messages": [
+                        {
+                            "From": {"Email": sender_email, "Name": sender_name or "UniHire"},
+                            "To": [{"Email": to}],
+                            "Subject": subject,
+                            "HTMLPart": html,
+                        }
+                    ]
+                },
+            )
+        elif BREVO_API_KEY:
+            response = await client.post(
+                BREVO_API_URL,
+                headers={"api-key": BREVO_API_KEY, "accept": "application/json"},
+                json={
+                    "sender": {"name": sender_name or "UniHire", "email": sender_email},
+                    "to": [{"email": to}],
+                    "subject": subject,
+                    "htmlContent": html,
+                },
+            )
+        else:
+            response = await client.post(
+                RESEND_API_URL,
+                headers={"Authorization": f"Bearer {RESEND_API_KEY}"},
+                json={"from": EMAIL_FROM, "to": [to], "subject": subject, "html": html},
+            )
+    if response.status_code >= 400:
+        # The provider's message says why (unverified sender, bad key...); it ends up in the logs
+        raise RuntimeError(f"Email API returned {response.status_code}: {response.text[:300]}")
 
 
 def _send_smtp(message: EmailMessage) -> None:
