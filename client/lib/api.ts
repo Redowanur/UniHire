@@ -552,6 +552,9 @@ export async function createScreeningTest(
 ): Promise<ScreeningTestDetail> {
   return request("/api/v1/screening-tests", {
     method: "POST",
+  start_time: string;
+  duration_minutes: number;
+  ends_at: string;
     authToken: token,
     body: JSON.stringify(payload),
   });
@@ -563,9 +566,16 @@ export async function fetchScreeningTests(
 ): Promise<ScreeningTestSummary[]> {
   const query = new URLSearchParams();
   if (params?.cohort_id) query.set("cohort_id", params.cohort_id);
+  start_time: string;
+  duration_minutes: number;
+  ends_at: string;
+  server_time: string;
+  phase: "upcoming" | "live" | "ended";
   if (params?.campus_invite_id) query.set("campus_invite_id", params.campus_invite_id);
   const qs = query.toString();
   return request(`/api/v1/screening-tests${qs ? `?${qs}` : ""}`, { authToken: token });
+  /** Owner only: students who have opened the exam. Questions lock once this is above 0. */
+  attempt_count: number;
 }
 
 export async function fetchScreeningTest(testId: string, token: string): Promise<ScreeningTestDetail> {
@@ -574,8 +584,11 @@ export async function fetchScreeningTest(testId: string, token: string): Promise
 
 export async function submitScreeningTest(
   testId: string,
-  answers: number[],
+  answers: Record<string, number>,
   token: string,
+    /** ISO timestamp (UTC) */
+    start_time: string;
+    duration_minutes: number;
 ): Promise<{ score: number; total: number }> {
   return request(`/api/v1/screening-tests/${testId}/submit`, {
     method: "POST",
@@ -586,6 +599,24 @@ export async function submitScreeningTest(
 
 export type SubmissionRow = {
   student_id: string;
+export async function updateScreeningTest(
+  testId: string,
+  payload: {
+    title?: string;
+    description?: string;
+    start_time?: string;
+    duration_minutes?: number;
+    questions?: QuestionDraft[];
+  },
+  token: string,
+): Promise<ScreeningTestDetail> {
+  return request(`/api/v1/screening-tests/${testId}`, {
+    method: "PATCH",
+    authToken: token,
+    body: JSON.stringify(payload),
+  });
+}
+
   student_name: string;
   reg_no: number;
   score: number;
@@ -601,6 +632,32 @@ export async function fetchSubmissions(testId: string, token: string): Promise<S
 export async function toggleShortlist(
   testId: string,
   studentId: string,
+export type StartedAttempt = {
+  questions: QuestionPublic[];
+  ends_at: string;
+  server_time: string;
+  violation_count: number;
+  max_violations: number;
+};
+
+export async function startScreeningTest(testId: string, token: string): Promise<StartedAttempt> {
+  return request(`/api/v1/screening-tests/${testId}/start`, { method: "POST", authToken: token });
+}
+
+export type ViolationType = "tab_switch" | "multi_monitor" | "camera_lost" | "mic_lost";
+
+export async function reportViolation(
+  testId: string,
+  type: ViolationType,
+  token: string,
+): Promise<{ violation_count: number; max_violations: number; terminated: boolean }> {
+  return request(`/api/v1/screening-tests/${testId}/violations`, {
+    method: "POST",
+    authToken: token,
+    body: JSON.stringify({ type }),
+  });
+}
+
   shortlisted: boolean,
   token: string,
 ): Promise<SubmissionRow> {
@@ -608,5 +665,18 @@ export async function toggleShortlist(
     method: "PATCH",
     authToken: token,
     body: JSON.stringify({ shortlisted }),
+  });
+}
+  violation_count: number;
+
+
+/** "Fri 27 Nov, 9:00 PM" in the viewer's own time zone. */
+export function formatExamTime(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
   });
 }

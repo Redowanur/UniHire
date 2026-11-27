@@ -2,11 +2,13 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Inbox, Star } from "lucide-react";
+import Link from "next/link";
+import { Inbox, Pencil, Star } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { LiveMonitor } from "@/components/exam/live-monitor";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
@@ -22,6 +24,7 @@ import { useAuth } from "@/hooks/use-auth";
 import {
   fetchScreeningTest,
   fetchSubmissions,
+  formatExamTime,
   toggleShortlist,
   type ScreeningTestDetail,
   type SubmissionRow,
@@ -33,6 +36,7 @@ function RecruiterTestSubmissionsPageContent() {
   const router = useRouter();
   const { user, status, accessToken } = useAuth();
 
+  const [pageOpenedAt] = useState(() => Date.now());
   const [test, setTest] = useState<ScreeningTestDetail | null>(null);
   const [rows, setRows] = useState<SubmissionRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -94,7 +98,30 @@ function RecruiterTestSubmissionsPageContent() {
           <Badge variant="secondary" className="mt-3">
             {test.questions.length} questions
           </Badge>
+          <Badge variant="secondary" className="mt-3 ml-2">
+            {formatExamTime(test.start_time)} · {test.duration_minutes} min
+          </Badge>
+          {new Date(test.ends_at).getTime() > pageOpenedAt ? (
+            <Link
+              href={`/recruiter/cohorts/${test.cohort_id}?edit=${test.id}`}
+              className={buttonVariants({ variant: "outline", size: "sm", className: "mt-3 ml-2 gap-1.5" })}
+            >
+              <Pencil /> Edit test
+            </Link>
+          ) : null}
         </div>
+
+        {accessToken && new Date(test.ends_at).getTime() > pageOpenedAt ? (
+          <LiveMonitor
+            testId={test.id}
+            accessToken={accessToken}
+            onSubmitted={() => {
+              fetchSubmissions(test.id, accessToken)
+                .then(setRows)
+                .catch(() => undefined);
+            }}
+          />
+        ) : null}
 
         {rows.length === 0 ? (
           <div className="mt-6 flex flex-col items-center gap-3 rounded-xl border border-dashed bg-card px-4 py-12 text-center text-sm text-muted-foreground">
@@ -110,6 +137,7 @@ function RecruiterTestSubmissionsPageContent() {
                 <TableRow>
                   <TableHead className="pl-4">Student</TableHead>
                   <TableHead>Score</TableHead>
+                  <TableHead>Violations</TableHead>
                   <TableHead className="pr-4 text-right">Shortlist</TableHead>
                 </TableRow>
               </TableHeader>
@@ -125,6 +153,11 @@ function RecruiterTestSubmissionsPageContent() {
                     <TableCell>
                       <Badge variant="secondary" className="tabular-nums">
                         {row.score}/{row.total}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={row.violation_count > 0 ? "destructive" : "outline"} className="tabular-nums">
+                        {row.violation_count}
                       </Badge>
                     </TableCell>
                     <TableCell className="pr-4 text-right">

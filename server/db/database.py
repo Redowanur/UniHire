@@ -15,6 +15,7 @@ from models.cohort_invite_model import CohortInviteLink
 from models.campus_invite_model import CampusInvite
 from models.screening_test_model import ScreeningTest
 from models.test_submission_model import TestSubmission
+from models.test_attempt_model import TestAttempt
 from models.password_reset_model import PasswordResetCode
 from services.admin_service import seed_admin
 
@@ -41,6 +42,7 @@ async def init_db():
             CampusInvite,
             ScreeningTest,
             TestSubmission,
+            TestAttempt,
             PasswordResetCode,
         ],
     )
