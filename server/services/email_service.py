@@ -17,6 +17,10 @@ EMAIL_FROM = os.getenv("EMAIL_FROM", "Job Portal <no-reply@jobportal.local>")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
 
+class EmailDeliveryError(Exception):
+    """The SMTP server couldn't be reached or refused the message."""
+
+
 def build_verification_email(name: str, user_type: str, verify_link: str) -> str:
     return f"""
     <div style="font-family: Arial, Helvetica, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
@@ -85,12 +89,17 @@ async def send_email(to: str, subject: str, html: str) -> None:
         )
         return
 
-    await to_thread.run_sync(_send_smtp, message)
+    try:
+        await to_thread.run_sync(_send_smtp, message)
+    except Exception as exc:
+        # Log the real cause (blocked port, bad credentials, timeout...) for the server logs
+        logger.exception("SMTP delivery to %s failed via %s:%s", to, SMTP_HOST, SMTP_PORT)
+        raise EmailDeliveryError(str(exc)) from exc
 
 
 def _send_smtp(message: EmailMessage) -> None:
     # Runs in a worker thread: stdlib smtplib is blocking
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30) as smtp:
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as smtp:
         smtp.starttls()
         if SMTP_USERNAME and SMTP_PASSWORD:
             smtp.login(SMTP_USERNAME, SMTP_PASSWORD)

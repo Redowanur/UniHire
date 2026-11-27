@@ -28,7 +28,7 @@ from schemas.recruiter_schema import RecruiterCreateResponse
 from schemas.student_schema import StudentResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from services.auth_service import authenticate
-from services.email_service import send_password_reset_email, send_verification_email
+from services.email_service import EmailDeliveryError, send_password_reset_email, send_verification_email
 from utils.helpers import as_aware_utc, utcnow
 
 PASSWORD_RESET_EXPIRE_MINUTES = 10
@@ -107,12 +107,18 @@ async def send_verification(current_user: Student | Recruiter = Depends(get_curr
         )
 
     token = create_email_verification_token(str(current_user.id))
-    await send_verification_email(
-        current_user.email,
-        current_user.name,
-        current_user.user_type.value,
-        token,
-    )
+    try:
+        await send_verification_email(
+            current_user.email,
+            current_user.name,
+            current_user.user_type.value,
+            token,
+        )
+    except EmailDeliveryError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="We couldn't send the verification email right now. Please try again in a few minutes.",
+        )
     return {"message": "Verification email sent. Check your inbox."}
 
 
@@ -175,7 +181,11 @@ async def forgot_password(data: ForgotPasswordRequest):
     )
     await reset_code.insert()
 
-    await send_password_reset_email(user.email, user.name, reset_code.code, PASSWORD_RESET_EXPIRE_MINUTES)
+    try:
+        await send_password_reset_email(user.email, user.name, reset_code.code, PASSWORD_RESET_EXPIRE_MINUTES)
+    except EmailDeliveryError:
+        # Already logged. Keep the generic reply so the response never reveals whether the account exists.
+        pass
     return generic_response
 
 
