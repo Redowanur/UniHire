@@ -269,7 +269,7 @@ function RecruiterSignUpForm() {
         // Verification can be requested again later from the app
       });
 
-      router.push("/recruiter/dashboard");
+      router.push("/recruiter/cohorts");
     } catch (err) {
       toast.error(errorMessage(err));
       setLoading(false);

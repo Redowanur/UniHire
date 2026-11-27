@@ -26,6 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -228,6 +229,10 @@ function RecruiterCohortPageContent() {
 
   async function handleCreateTest(event: FormEvent) {
     event.preventDefault();
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(startAt)) {
+      toast.error("Pick a start date and time.");
+      return;
+    }
     if (editing) {
       await handleSaveEdit();
       return;
@@ -301,7 +306,7 @@ function RecruiterCohortPageContent() {
         <Breadcrumb className="mb-5">
           <BreadcrumbList>
             <BreadcrumbItem>
-              <BreadcrumbLink href="/recruiter/dashboard">Dashboard</BreadcrumbLink>
+              <BreadcrumbLink href="/recruiter/cohorts">Cohorts</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
@@ -442,16 +447,15 @@ function RecruiterCohortPageContent() {
                 onChange={(event) => setDescription(event.target.value)}
               />
 
-              <div className="grid gap-3 sm:grid-cols-[1fr_9rem]">
+              <div className="grid gap-3 sm:grid-cols-[1fr_8rem]">
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="test-start">Start time</Label>
-                  <Input
+                  <DateTimePicker
                     id="test-start"
-                    type="datetime-local"
-                    required
                     disabled={editing?.phase === "live"}
                     value={startAt}
-                    onChange={(event) => setStartAt(event.target.value)}
+                    onChange={setStartAt}
+                    minDate={new Date(pageOpenedAt)}
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">

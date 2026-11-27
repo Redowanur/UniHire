@@ -140,7 +140,7 @@ function TakeScreeningTestPageContent() {
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/login");
     else if (user?.user_type === "admin") router.replace("/admin");
-    else if (user?.user_type === "recruiter") router.replace("/recruiter/dashboard");
+    else if (user?.user_type === "recruiter") router.replace("/recruiter/cohorts");
   }, [status, user?.user_type, router]);
 
   useEffect(() => {

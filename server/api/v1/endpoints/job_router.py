@@ -104,8 +104,12 @@ async def update_job(job_id: str, job_data: JobUpdateRequest, user: Recruiter = 
         )
 
     # Update only the fields that were actually sent in the request
-    for field, value in job_data.model_dump(exclude_unset=True).items():
+    changes = job_data.model_dump(exclude_unset=True)
+    for field, value in changes.items():
         setattr(job, field, value)
+    # Keep the numeric range (used by the salary filter) in step with the salary text
+    if "salary" in changes and "salary_min" not in changes and "salary_max" not in changes:
+        job.salary_min, job.salary_max = parse_salary_range(job.salary)
     job.updated_at = utcnow()
 
     await job.save()

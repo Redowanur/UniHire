@@ -30,7 +30,7 @@ export default function LoginPage() {
       const { access_token, user_type } = await login(email.trim(), password);
       await signIn(access_token, user_type);
       router.push(
-        user_type === "admin" ? "/admin" : user_type === "recruiter" ? "/recruiter/dashboard" : "/cohort",
+        user_type === "admin" ? "/admin" : user_type === "recruiter" ? "/recruiter/cohorts" : "/cohort",
       );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again.");

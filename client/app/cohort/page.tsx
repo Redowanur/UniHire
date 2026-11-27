@@ -1,15 +1,11 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ArrowRight,
-  Building2,
   CalendarIcon,
   Check,
   Copy,
-  FileText,
   Link2,
   Pencil,
   Plus,
@@ -18,14 +14,13 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { InviteStatusBadge, PlacementBadge } from "@/components/status-badge";
+import { PlacementBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -43,22 +38,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 import {
   createInviteLink,
   fetchCohort,
   fetchInviteLinks,
-  fetchMyCampusInvites,
-  fetchScreeningTests,
-  formatExamTime,
   renameCohort,
   revokeInviteLink,
-  type CampusInvite,
   type CohortDetail,
   type InviteLink,
-  type ScreeningTestSummary,
 } from "@/lib/api";
 
 const expiryItems = [
@@ -108,15 +97,11 @@ export default function CohortDashboardPage() {
     if (!accessToken || !user?.cohort_id) return;
     Promise.all([
       fetchCohort(user.cohort_id, accessToken),
-      fetchMyCampusInvites(accessToken),
       fetchInviteLinks(user.cohort_id, accessToken),
-      fetchScreeningTests(accessToken, { cohort_id: user.cohort_id }),
     ])
-      .then(([c, i, l, t]) => {
+      .then(([c, l]) => {
         setCohort(c);
-        setInvites(i);
         setLinks(l);
-        setTests(t);
       })
       .catch((err) => {
         toast.error(err instanceof Error ? err.message : "Couldn't load your cohort.");
@@ -277,17 +262,9 @@ export default function CohortDashboardPage() {
         </Card>
 
         <div className="animate-fade-up mt-6" style={{ animationDelay: "100ms" }}>
-          <Tabs defaultValue="overview">
-            <ScrollArea className="w-full">
-              <TabsList aria-label="Cohort sections" className="group-data-horizontal/tabs:h-11">
-                <TabsTrigger value="overview" className="px-4">Overview</TabsTrigger>
-                <TabsTrigger value="companies" className="px-4">Companies</TabsTrigger>
-                <TabsTrigger value="tests" className="px-4">Tests</TabsTrigger>
-                <TabsTrigger value="links" className="px-4">Invite links</TabsTrigger>
-              </TabsList>
-            </ScrollArea>
-
-            <TabsContent value="overview" className="animate-overlay-in mt-2">
+          <div className="space-y-8">
+            <section className="space-y-2">
+              <h2 className="text-sm font-semibold">Members</h2>
               <Card className="py-0">
                 <Table>
                   <TableHeader>
@@ -479,8 +456,8 @@ export default function CohortDashboardPage() {
                   ))}
                 </ul>
               )}
-            </TabsContent>
-          </Tabs>
+            </section>
+          </div>
         </div>
       </div>
     </div>

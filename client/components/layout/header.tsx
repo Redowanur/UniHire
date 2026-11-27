@@ -39,9 +39,25 @@ import { useAuth } from "@/hooks/use-auth";
 import { navLinks } from "@/lib/data";
 import { cn } from "@/lib/utils";
 
-function dashboardHref(user: { user_type: string; cohort_id?: string | null }) {
-  if (user.user_type === "recruiter") return "/recruiter/dashboard";
-  return user.cohort_id ? "/cohort" : "/onboarding/cohort";
+type HeaderLink = { label: string; href: string; exact?: boolean };
+
+/** Links shown in the main nav, by who is logged in. */
+function linksFor(user: { user_type: string; cohort_id?: string | null } | null): HeaderLink[] {
+  const base: HeaderLink[] = [...navLinks];
+  if (user?.user_type === "admin") return [...base, { label: "Admin", href: "/admin" }];
+  if (user?.user_type === "recruiter") {
+    return [...base, { label: "Cohorts", href: "/recruiter/cohorts" }, { label: "Posts", href: "/recruiter/posts" }];
+  }
+  if (user?.user_type === "student") {
+    if (!user.cohort_id) return [...base, { label: "My Cohort", href: "/onboarding/cohort" }];
+    return [
+      ...base,
+      { label: "My Cohort", href: "/cohort", exact: true },
+      { label: "Companies", href: "/cohort/companies" },
+      { label: "Tests", href: "/cohort/tests" },
+    ];
+  }
+  return base;
 }
 
 function initialsOf(name?: string) {
@@ -58,12 +74,11 @@ function initialsOf(name?: string) {
 function NavLinks({ mobile, onNavigate }: { mobile?: boolean; onNavigate?: () => void }) {
   const pathname = usePathname();
   const { user } = useAuth();
-  // The Admin menu is only shown to the logged-in admin
-  const links = user?.user_type === "admin" ? [...navLinks, { label: "Admin", href: "/admin" }] : navLinks;
+  const links = linksFor(user);
   return (
     <>
       {links.map((link) => {
-        const active = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
+        const active = link.href === "/" || link.exact ? pathname === link.href : pathname.startsWith(link.href);
         return (
           <Link
             key={link.label}
@@ -145,12 +160,6 @@ function UserMenu() {
         </DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        {user.user_type !== "admin" ? (
-          <DropdownMenuItem render={<Link href={dashboardHref(user)} />} className="gap-2 py-2.5">
-            <LayoutDashboard className="size-4" />
-            Dashboard
-          </DropdownMenuItem>
-        ) : null}
         <DropdownMenuItem onClick={() => setConfirmOpen(true)} className="gap-2 py-2.5">
           <LogOut className="size-4" />
           Log out
@@ -221,15 +230,6 @@ function MobileMenu() {
                   <p className="truncate text-xs text-muted-foreground">{user.email}</p>
                 </div>
               </div>
-              {user.user_type !== "admin" ? (
-                <Link
-                  href={dashboardHref(user)}
-                  onClick={close}
-                  className={buttonVariants({ size: "lg" })}
-                >
-                  <LayoutDashboard /> Dashboard
-                </Link>
-              ) : null}
               <Button
                 variant="outline"
                 size="lg"

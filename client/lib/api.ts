@@ -344,6 +344,18 @@ export async function fetchMyJobs(email: string): Promise<JobListing[]> {
   return data.jobs;
 }
 
+export async function updateJob(
+  jobId: string,
+  payload: Partial<JobCreatePayload>,
+  token: string,
+): Promise<{ message: string; job_id: string }> {
+  return request(`/api/v1/job/${jobId}`, {
+    method: "PATCH",
+    authToken: token,
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function deleteJob(jobId: string, token: string): Promise<{ message: string }> {
   return request(`/api/v1/job/${jobId}`, { method: "DELETE", authToken: token });
 }
