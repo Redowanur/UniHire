@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, Briefcase, Check, Inbox, Plus, Trash2, Users, X } from "lucide-react";
 import { toast } from "sonner";
 
+import { VerifyNotice } from "@/components/auth/verify-notice";
 import { InviteStatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -131,7 +132,7 @@ function EmptyState({ icon: Icon, children }: { icon: typeof Users; children: Re
 
 export default function RecruiterDashboardPage() {
   const router = useRouter();
-  const { user, status, accessToken } = useAuth();
+  const { user, status, accessToken, refreshUser } = useAuth();
   const [invites, setInvites] = useState<CampusInvite[] | null>(null);
   const [respondingId, setRespondingId] = useState<string | null>(null);
 
@@ -148,7 +149,7 @@ export default function RecruiterDashboardPage() {
   }, [status, user, router]);
 
   useEffect(() => {
-    if (!accessToken || user?.user_type !== "recruiter") return;
+    if (!accessToken || user?.user_type !== "recruiter" || !user.is_verified) return;
     fetchMyCampusInvites(accessToken)
       .then(setInvites)
       .catch((err) => toast.error(err instanceof Error ? err.message : "Couldn't load your invites."));
@@ -231,6 +232,17 @@ export default function RecruiterDashboardPage() {
     }
   }
 
+  if (user && !user.is_verified) {
+    return (
+      <VerifyNotice
+        email={user.email}
+        accessToken={accessToken}
+        onCheck={refreshUser}
+        afterVerified="post jobs and receive campus invites"
+      />
+    );
+  }
+
   if (status === "loading" || !user || invites === null) {
     return (
       <div className="mx-auto w-full max-w-4xl space-y-4 px-4 py-12">
@@ -253,15 +265,10 @@ export default function RecruiterDashboardPage() {
             <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Recruiter dashboard</h1>
             <p className="mt-1 text-sm text-muted-foreground">{user.company_name}</p>
           </div>
-          <Button onClick={() => setShowJobForm(true)} disabled={!user.is_verified} className="gap-2">
+          <Button onClick={() => setShowJobForm(true)} className="gap-2">
             <Plus /> Post a job
           </Button>
         </div>
-        {!user.is_verified ? (
-          <p className="mt-4 rounded-xl border border-dashed bg-card px-4 py-3 text-sm text-muted-foreground">
-            Verify your email to post jobs and receive campus invites. Check your inbox for the verification link.
-          </p>
-        ) : null}
 
         <div className="animate-fade-up mt-6" style={{ animationDelay: "100ms" }}>
           <Tabs defaultValue="invites">

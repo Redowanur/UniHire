@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { VerifyNotice } from "@/components/auth/verify-notice";
 import { useAuth } from "@/hooks/use-auth";
 import {
   createCohort,
@@ -70,7 +71,7 @@ export default function CohortOnboardingPage() {
   }, [status, user?.user_type, router]);
 
   useEffect(() => {
-    if (!accessToken || !user || user.cohort_id) return;
+    if (!accessToken || !user || !user.is_verified || user.cohort_id) return;
     fetchSuggestedCohorts(accessToken)
       .then(setSuggested)
       .catch(() => setSuggested([]));
@@ -133,12 +134,12 @@ export default function CohortOnboardingPage() {
 
   if (!user.is_verified) {
     return (
-      <div className="mx-auto max-w-lg px-4 py-20 text-center">
-        <h1 className="text-2xl font-semibold">Verify your email first</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Check your inbox for the verification link before joining or creating a cohort.
-        </p>
-      </div>
+      <VerifyNotice
+        email={user.email}
+        accessToken={accessToken}
+        onCheck={refreshUser}
+        afterVerified="join or create your cohort"
+      />
     );
   }
 
