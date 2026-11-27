@@ -17,6 +17,14 @@ from utils.helpers import as_aware_utc, utcnow
 router = APIRouter(tags=["Cohort Invite Links"])
 
 
+async def _purge_expired_links() -> None:
+    """Delete invite links whose expiry has passed (the TTL index does this too, a bit later)."""
+    await CohortInviteLink.find(
+        CohortInviteLink.expires_at != None,  # noqa: E711 - beanie query operator
+        CohortInviteLink.expires_at < utcnow().replace(tzinfo=None),
+    ).delete()
+
+
 def _to_response(link: CohortInviteLink) -> InviteLinkResponse:
     return InviteLinkResponse(
         token=link.token,
@@ -66,12 +74,14 @@ async def list_invite_links(
     student = _require_verified_student(user)
     cohort = await _require_member(cohort_id, student)
 
+    await _purge_expired_links()
     links = await CohortInviteLink.find(CohortInviteLink.cohort_id == cohort.id).sort("-created_at").to_list()
     return [_to_response(link) for link in links]
 
 
 @router.get("/invite-links/{token}")
 async def preview_invite_link(token: str) -> InviteLinkPreview:
+    await _purge_expired_links()
     link = await CohortInviteLink.find_one(CohortInviteLink.token == token)
     if not link:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invite link not found")
@@ -108,6 +118,7 @@ async def join_via_invite_link(
             detail="You already belong to a cohort. Leave it before joining another.",
         )
 
+    await _purge_expired_links()
     link = await CohortInviteLink.find_one(CohortInviteLink.token == token)
     if not link:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invite link not found")
@@ -140,6 +151,6 @@ async def revoke_invite_link(
 
     await _require_member(link.cohort_id, student)
 
-    link.is_active = False
-    await link.save()
+    # Revoking removes the link outright, so it stops working and disappears from the list
+    await link.delete()
     return {"message": "Invite link revoked"}

@@ -3,6 +3,7 @@ from datetime import datetime
 
 from beanie import Document, Indexed, PydanticObjectId
 from pydantic import Field
+from pymongo import IndexModel
 from typing import Annotated
 
 from utils.helpers import utcnow
@@ -23,4 +24,6 @@ class CohortInviteLink(Document):
 
     class Settings:
         name = "cohort_invite_links"
-        indexes = ["cohort_id"]
+        # The TTL index lets MongoDB delete a link soon after it expires (it sweeps about once a
+        # minute); the router also purges expired links on every read, so none ever show up.
+        indexes = ["cohort_id", IndexModel([("expires_at", 1)], expireAfterSeconds=0)]

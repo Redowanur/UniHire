@@ -77,19 +77,24 @@ export default function CohortDashboardPage() {
   const [renaming, setRenaming] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const [savingName, setSavingName] = useState(false);
-  const [invites, setInvites] = useState<CampusInvite[]>([]);
   const [links, setLinks] = useState<InviteLink[]>([]);
-  const [tests, setTests] = useState<ScreeningTestSummary[]>([]);
   const [loadFailed, setLoadFailed] = useState(false);
   const [creatingLink, setCreatingLink] = useState(false);
   const [expiry, setExpiry] = useState("never");
   const [expiryDate, setExpiryDate] = useState<Date | undefined>();
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  // Ticks so a link that expires while the page is open disappears without a reload
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 15_000);
+    return () => window.clearInterval(id);
+  }, []);
+  const liveLinks = links.filter((l) => !l.expires_at || now === 0 || new Date(l.expires_at).getTime() > now);
 
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/login");
     else if (user?.user_type === "admin") router.replace("/admin");
-    else if (user && user.user_type === "recruiter") router.replace("/recruiter/dashboard");
+    else if (user && user.user_type === "recruiter") router.replace("/recruiter/cohorts");
     else if (user && user.user_type === "student" && !user.cohort_id) router.replace("/onboarding/cohort");
   }, [status, user, router]);
 
@@ -164,7 +169,7 @@ export default function CohortDashboardPage() {
     if (!accessToken) return;
     try {
       await revokeInviteLink(token, accessToken);
-      setLinks((current) => current.map((l) => (l.token === token ? { ...l, is_active: false } : l)));
+      setLinks((current) => current.filter((l) => l.token !== token));
       toast.success("Link revoked");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Couldn't revoke that link.");
@@ -297,79 +302,20 @@ export default function CohortDashboardPage() {
                   </TableBody>
                 </Table>
               </Card>
-            </TabsContent>
+            </section>
 
-            <TabsContent value="companies" className="animate-overlay-in mt-2">
-              {invites.length === 0 ? (
-                <EmptyState icon={Building2}>
-                  No companies invited yet. Head to{" "}
-                  <Link href="/hiring" className="font-semibold text-primary">
-                    who&apos;s hiring
-                  </Link>{" "}
-                  to send your first invite.
-                </EmptyState>
-              ) : (
-                <ul className="space-y-2">
-                  {invites.map((invite) => (
-                    <li key={invite.id} className="rounded-xl border bg-card px-4 py-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold">{invite.company_name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {invite.job_title ?? "General outreach"} · invited by{" "}
-                            {invite.invited_by === user.id ? "you" : "a cohort member"}
-                          </p>
-                        </div>
-                        <InviteStatusBadge status={invite.status} />
-                      </div>
-                      {invite.message ? (
-                        <p className="mt-2 text-xs text-muted-foreground">&ldquo;{invite.message}&rdquo;</p>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </TabsContent>
-
-            <TabsContent value="tests" className="animate-overlay-in mt-2">
-              {tests.length === 0 ? (
-                <EmptyState icon={FileText}>
-                  No screening tests yet. They&apos;ll show up here once a recruiter you invited
-                  publishes one.
-                </EmptyState>
-              ) : (
-                <ul className="space-y-2">
-                  {tests.map((test) => (
-                    <li key={test.id}>
-                      <Link
-                        href={`/tests/${test.id}`}
-                        className="group flex items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3.5 transition-colors hover:border-primary/40"
-                      >
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold">{test.title}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {test.company_name} · {test.question_count} questions · {formatExamTime(test.start_time)} · {test.duration_minutes} min
-                          </p>
-                        </div>
-                        <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </TabsContent>
-
-            <TabsContent value="links" className="animate-overlay-in mt-2">
+            <section className="space-y-3">
+              <h2 className="text-sm font-semibold">Invite links</h2>
               <Card>
                 <CardContent>
                   <form
                     onSubmit={handleCreateLink}
-                    className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:items-end"
+                    className="flex flex-col gap-3 sm:flex-row sm:items-start"
                   >
-                    <div className="min-w-0 space-y-1.5">
+                    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                       <p className="text-sm font-semibold">Link expiry</p>
                       <Select value={expiry} onValueChange={(v) => setExpiry(v ?? "never")} items={expiryItems}>
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="h-10 w-full">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -382,11 +328,11 @@ export default function CohortDashboardPage() {
                       </Select>
                     </div>
                     {expiry === "custom" ? (
-                      <div className="min-w-0 space-y-1.5">
+                      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                         <p className="text-sm font-semibold">Expiry date</p>
                       <Popover>
                         <PopoverTrigger
-                          render={<Button variant="outline" className="w-full justify-start gap-2 font-normal lg:w-48" />}
+                          render={<Button variant="outline" className="h-10 w-full justify-start gap-2 font-normal" />}
                         >
                           <CalendarIcon />
                           {expiryDate ? expiryDate.toLocaleDateString() : "Select date"}
@@ -402,10 +348,16 @@ export default function CohortDashboardPage() {
                       </Popover>
                       </div>
                     ) : null}
-                    <Button type="submit" disabled={creatingLink} className="w-full gap-2 sm:col-span-full lg:col-span-1 lg:w-auto">
-                      {creatingLink ? <Spinner /> : <Plus />}
-                      New link
-                    </Button>
+                    <div className="flex flex-col gap-1.5">
+                      {/* Same label row as the other fields, so every control sits on one line */}
+                      <span aria-hidden className="invisible hidden text-sm font-semibold sm:block">
+                        &nbsp;
+                      </span>
+                      <Button type="submit" disabled={creatingLink} className="h-10 w-full gap-2 sm:w-auto">
+                        {creatingLink ? <Spinner /> : <Plus />}
+                        New link
+                      </Button>
+                    </div>
                   </form>
                   <p className="mt-3 text-xs text-muted-foreground">
                     Anyone with the link can join your cohort until it expires or you revoke it.
@@ -413,13 +365,11 @@ export default function CohortDashboardPage() {
                 </CardContent>
               </Card>
 
-              {links.length === 0 ? (
-                <div className="mt-4">
-                  <EmptyState icon={Link2}>No invite links yet. Create one to bring classmates in.</EmptyState>
-                </div>
+              {liveLinks.length === 0 ? (
+                <EmptyState icon={Link2}>No invite links yet. Create one to bring classmates in.</EmptyState>
               ) : (
-                <ul className="mt-4 space-y-2">
-                  {links.map((link) => (
+                <ul className="space-y-2">
+                  {liveLinks.map((link) => (
                     <li
                       key={link.token}
                       className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3"
