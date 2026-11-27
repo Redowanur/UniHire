@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
@@ -24,8 +25,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={cn("h-full", "antialiased", outfit.variable, "font-sans")}>
+    <html lang="en" suppressHydrationWarning className={cn("h-full", "antialiased", outfit.variable, "font-sans")}>
       <body className="flex min-h-full flex-col">
+        <ThemeProvider>
         <TooltipProvider>
           <AuthProvider>
             <Header />
@@ -38,6 +40,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           </AuthProvider>
         </TooltipProvider>
         <Toaster position="top-right" richColors closeButton />
+        </ThemeProvider>
       </body>
     </html>
   );

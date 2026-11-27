@@ -112,6 +112,51 @@
   --sidebar-ring: oklch(0.65 0.18 285);
 }
 
+:root {
+  color-scheme: light;
+}
+
+/* Dark theme: deep indigo-tinted surfaces, with a brighter violet primary. Every colour in the app
+   comes from these tokens, so toggling the `dark` class on <html> restyles everything. */
+.dark {
+  color-scheme: dark;
+  --background: oklch(0.16 0.028 282);
+  --foreground: oklch(0.96 0.012 290);
+  --card: oklch(0.205 0.034 282);
+  --card-foreground: oklch(0.96 0.012 290);
+  --popover: oklch(0.225 0.038 282);
+  --popover-foreground: oklch(0.96 0.012 290);
+  --primary: oklch(0.62 0.21 285);
+  --primary-foreground: oklch(0.99 0.005 290);
+  --secondary: oklch(0.265 0.055 285);
+  --secondary-foreground: oklch(0.9 0.045 290);
+  --muted: oklch(0.245 0.032 283);
+  --muted-foreground: oklch(0.72 0.035 287);
+  --accent: oklch(0.3 0.07 285);
+  --accent-foreground: oklch(0.94 0.04 290);
+  --destructive: oklch(0.68 0.21 25);
+  --border: oklch(0.31 0.035 284);
+  --input: oklch(0.34 0.04 284);
+  --ring: oklch(0.62 0.18 285);
+  --chart-1: oklch(0.68 0.2 285);
+  --chart-2: oklch(0.8 0.15 70);
+  --chart-3: oklch(0.72 0.14 200);
+  --chart-4: oklch(0.7 0.19 340);
+  --chart-5: oklch(0.75 0.15 150);
+  --night: oklch(0.235 0.095 283);
+  --night-foreground: oklch(0.98 0.01 290);
+  --warm: oklch(0.8 0.15 70);
+  --success: oklch(0.74 0.16 155);
+  --sidebar: oklch(0.185 0.03 282);
+  --sidebar-foreground: oklch(0.96 0.012 290);
+  --sidebar-primary: oklch(0.62 0.21 285);
+  --sidebar-primary-foreground: oklch(0.99 0.005 290);
+  --sidebar-accent: oklch(0.3 0.07 285);
+  --sidebar-accent-foreground: oklch(0.94 0.04 290);
+  --sidebar-border: oklch(0.31 0.035 284);
+  --sidebar-ring: oklch(0.62 0.18 285);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -128,7 +173,7 @@
     @apply bg-background text-foreground font-sans;
   }
   ::selection {
-    background-color: color-mix(in oklab, var(--primary) 25%, white);
+    background-color: color-mix(in oklab, var(--primary) 28%, transparent);
   }
 }
 

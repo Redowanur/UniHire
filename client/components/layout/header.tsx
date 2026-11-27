@@ -3,9 +3,10 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, LayoutDashboard, LogOut, Menu } from "lucide-react";
+import { ChevronDown, LogOut, Menu } from "lucide-react";
 
 import { Logo } from "@/components/logo";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
@@ -275,10 +276,13 @@ export function Header() {
             </Suspense>
           </nav>
         </div>
-        <div className="hidden md:block">
-          <AuthArea />
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <div className="hidden md:block">
+            <AuthArea />
+          </div>
+          <MobileMenu />
         </div>
-        <MobileMenu />
       </Container>
     </header>
   );

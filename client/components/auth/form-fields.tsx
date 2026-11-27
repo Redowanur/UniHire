@@ -113,7 +113,7 @@ export function PhoneField({
   required?: boolean;
 }) {
   return (
-    <div className="flex h-10 w-full items-center rounded-xl border border-input bg-background transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
+    <div className="flex h-10 w-full items-center rounded-xl border border-input bg-background transition-colors dark:bg-input/30 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
       <span className="flex h-full shrink-0 items-center rounded-l-xl border-r bg-muted px-3 text-sm font-medium text-muted-foreground select-none">
         +880
       </span>
