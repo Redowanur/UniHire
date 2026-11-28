@@ -127,7 +127,12 @@ def _to_detail(
 ) -> ScreeningTestDetail:
     # Students never get questions here; they only receive them (in their own order) from /start
     questions = (
-        [QuestionFull(id=q.id, text=q.text, options=q.options, correct_index=q.correct_index) for q in test.questions]
+        [
+            QuestionFull(
+                id=q.id, text=q.text, options=q.options, correct_index=q.correct_index, code=q.code, language=q.language
+            )
+            for q in test.questions
+        ]
         if is_owner
         else []
     )
@@ -344,7 +349,13 @@ async def start_attempt(
 
     by_id = {q.id: q for q in test.questions}
     questions = [
-        QuestionPublic(id=qid, text=by_id[qid].text, options=by_id[qid].options)
+        QuestionPublic(
+            id=qid,
+            text=by_id[qid].text,
+            options=by_id[qid].options,
+            code=by_id[qid].code,
+            language=by_id[qid].language,
+        )
         for qid in attempt.question_order
         if qid in by_id
     ]

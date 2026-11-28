@@ -77,6 +77,15 @@ export const endpointGroups: EndpointGroup[] = [
     ],
   },
   {
+    id: "ai",
+    title: "AI question generation",
+    description:
+      "Uses the recruiter's own OpenAI or Gemini key, sent for one request and never stored or logged. Questions may include a code snippet with a language. The AI can be wrong about code output, so the recruiter reviews every marked answer.",
+    endpoints: [
+      { method: "POST", path: "/ai/generate-questions", auth: "recruiter", note: "{provider: openai | gemini, api_key, model?, prompt, count 1-20} returns {questions, skipped, model}. Nothing is saved; the form fills in. 400 bad key or model, 429 quota, 502 provider or bad output." },
+    ],
+  },
+  {
     id: "tests",
     title: "Screening tests",
     description: "A test belongs to an accepted invite. The window is start_time to start_time + duration_minutes.",

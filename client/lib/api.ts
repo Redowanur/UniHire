@@ -1,5 +1,7 @@
-const PUBLIC_API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+// A value like "localhost:8000" (no scheme) would parse as a URL with scheme "localhost:" and an
+// origin of "null", so add http:// when it is missing.
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL?.trim() || "http://localhost:8000";
+const PUBLIC_API_URL = /^[a-z][a-z0-9+.-]*:\/\//i.test(rawApiUrl) ? rawApiUrl : `http://${rawApiUrl}`;
 // Server-side rendering inside Docker reaches the API over the internal
 // network (API_INTERNAL_URL); the browser always uses the public URL.
 
@@ -551,8 +553,21 @@ export async function respondToCampusInvite(
 /* Screening tests                    */
 /* ---------------------------------- */
 
-export type QuestionDraft = { text: string; options: string[]; correct_index: number };
-export type QuestionPublic = { id: string; text: string; options: string[] };
+export type QuestionDraft = {
+  text: string;
+  options: string[];
+  correct_index: number;
+  /** Optional snippet shown under the question ("what does this print?") */
+  code?: string | null;
+  language?: string | null;
+};
+export type QuestionPublic = {
+  id: string;
+  text: string;
+  options: string[];
+  code?: string | null;
+  language?: string | null;
+};
 export type QuestionFull = QuestionPublic & { correct_index: number };
 
 export type ScreeningTestSummary = {
@@ -719,5 +734,27 @@ export function formatExamTime(iso: string): string {
     month: "short",
     hour: "numeric",
     minute: "2-digit",
+  });
+}
+
+
+/* ---------------------------------- */
+/* AI question generation             */
+/* ---------------------------------- */
+
+export type AiProvider = "openai" | "gemini";
+
+/**
+ * Drafts questions with the recruiter's own OpenAI or Gemini key. The key is sent to our API for
+ * this one request and is never stored there.
+ */
+export async function generateQuestions(
+  payload: { provider: AiProvider; api_key: string; model?: string; prompt: string; count: number },
+  token: string,
+): Promise<{ questions: QuestionDraft[]; skipped: number; model: string }> {
+  return request("/api/v1/ai/generate-questions", {
+    method: "POST",
+    authToken: token,
+    body: JSON.stringify(payload),
   });
 }

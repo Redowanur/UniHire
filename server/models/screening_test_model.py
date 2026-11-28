@@ -12,6 +12,9 @@ class Question(BaseModel):
     text: str = Field(min_length=1, max_length=500)
     options: list[str] = Field(min_length=2, max_length=6)
     correct_index: int = Field(ge=0)
+    # Optional code shown under the question text ("what does this print?")
+    code: str | None = Field(default=None, max_length=4000)
+    language: str | None = Field(default=None, max_length=30)
 
 
 class ScreeningTest(Document):

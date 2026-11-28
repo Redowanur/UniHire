@@ -32,6 +32,7 @@ import {
   QuestionnaireTitle,
 } from "@/components/ui/questionnaire";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CodeBlock } from "@/components/ui/code-block";
 import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -614,6 +615,7 @@ function TakeScreeningTestPageContent() {
                     <QuestionnaireTitle className="text-lg">
                       {qIndex + 1}. {question.text}
                     </QuestionnaireTitle>
+                    {question.code ? <CodeBlock code={question.code} language={question.language} /> : null}
                     <QuestionnaireDescription>Choose one answer.</QuestionnaireDescription>
                     <QuestionnaireChoices>
                       {question.options.map((option, oIndex) => (

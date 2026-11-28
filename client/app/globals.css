@@ -185,3 +185,32 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Syntax highlighting (highlight.js token classes) for code in questions */
+:root {
+  --code-keyword: oklch(0.5 0.2 295);
+  --code-string: oklch(0.5 0.13 155);
+  --code-number: oklch(0.56 0.16 50);
+  --code-comment: oklch(0.58 0.02 280);
+  --code-title: oklch(0.5 0.15 250);
+  --code-type: oklch(0.5 0.1 195);
+  --code-attr: oklch(0.52 0.16 15);
+}
+.dark {
+  --code-keyword: oklch(0.78 0.14 295);
+  --code-string: oklch(0.8 0.13 155);
+  --code-number: oklch(0.8 0.13 60);
+  --code-comment: oklch(0.65 0.03 280);
+  --code-title: oklch(0.78 0.11 250);
+  --code-type: oklch(0.8 0.09 195);
+  --code-attr: oklch(0.78 0.12 15);
+}
+.hljs-keyword, .hljs-selector-tag, .hljs-literal, .hljs-doctag, .hljs-meta .hljs-keyword { color: var(--code-keyword); }
+.hljs-string, .hljs-regexp, .hljs-addition, .hljs-meta .hljs-string, .hljs-template-variable { color: var(--code-string); }
+.hljs-number, .hljs-symbol, .hljs-bullet, .hljs-link { color: var(--code-number); }
+.hljs-comment, .hljs-quote, .hljs-deletion { color: var(--code-comment); font-style: italic; }
+.hljs-title, .hljs-section, .hljs-selector-id, .hljs-selector-class { color: var(--code-title); }
+.hljs-built_in, .hljs-type, .hljs-class .hljs-title, .hljs-title.class_ { color: var(--code-type); }
+.hljs-attr, .hljs-attribute, .hljs-variable, .hljs-name, .hljs-params, .hljs-property, .hljs-meta { color: var(--code-attr); }
+.hljs-emphasis { font-style: italic; }
+.hljs-strong { font-weight: 600; }

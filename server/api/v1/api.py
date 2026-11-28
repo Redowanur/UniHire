@@ -13,6 +13,7 @@ from api.v1.endpoints import (
     live_router,
     screening_test_router,
     stats_router,
+    ai_router,
 )
 
 api_router = APIRouter()
@@ -29,3 +30,4 @@ api_router.include_router(campus_invite_router.router)
 api_router.include_router(screening_test_router.router)
 api_router.include_router(live_router.router)
 api_router.include_router(stats_router.router)
+api_router.include_router(ai_router.router)

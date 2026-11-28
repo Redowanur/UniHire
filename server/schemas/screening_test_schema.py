@@ -3,13 +3,30 @@ from datetime import datetime
 from beanie import PydanticObjectId
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+
+from enums.code_languages import normalize_language
 
 
 class QuestionCreate(BaseModel):
     text: str = Field(min_length=1, max_length=500)
     options: list[str] = Field(min_length=2, max_length=6)
     correct_index: int = Field(ge=0)
+    code: str | None = Field(default=None, max_length=4000)
+    language: str | None = Field(default=None, max_length=30)
+
+    @model_validator(mode="after")
+    def _check_question(self):
+        if self.correct_index >= len(self.options):
+            raise ValueError("correct_index must point at one of the options")
+        # A blank snippet is no snippet
+        if self.code is not None and not self.code.strip():
+            self.code = None
+        if self.code is None:
+            self.language = None
+        else:
+            self.language = normalize_language(self.language) or "plaintext"
+        return self
 
 
 class ScreeningTestCreateRequest(BaseModel):
@@ -35,6 +52,8 @@ class QuestionPublic(BaseModel):
     id: str
     text: str
     options: list[str]
+    code: str | None = None
+    language: str | None = None
 
 
 class QuestionFull(QuestionPublic):

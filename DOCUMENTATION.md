@@ -161,7 +161,7 @@ Provider priority: Mailjet → Brevo → Resend → SMTP. Hosts like Render bloc
 | `CohortInviteLink` (`cohort_invite_links`) | cohort_id, token (8-byte urlsafe), created_by, expires_at, is_active | unique token; **TTL index on `expires_at`** |
 | `CampusInvite` (`campus_invites`) | cohort_id, recruiter_id, job_id, invited_by, message, status (`pending`/`accepted`/`rejected`), responded_at | indexed cohort_id, recruiter_id |
 | `Job` (`jobs`) | title (5–50), company_name, job_type, experience, salary text, salary_min/max, category, work_place, vacancy, location, description, lists (responsibilities, requirements, skills, benefits), `created_by` (**recruiter email**) | |
-| `ScreeningTest` (`screening_tests`) | campus_invite_id, cohort_id, recruiter_id, title, description, questions[{id, text, options 2–6, correct_index}], `start_time` (UTC), `duration_minutes` (1–300) | `ends_at` = start + duration |
+| `ScreeningTest` (`screening_tests`) | campus_invite_id, cohort_id, recruiter_id, title, description, questions[{id, text, options 2–6, correct_index, code?, language?}], `start_time` (UTC), `duration_minutes` (1–300) | `ends_at` = start + duration |
 | `TestAttempt` (`test_attempts`) | test_id, student_id, `question_order` (shuffled question ids), violations[{type, at}], terminated, started_at | unique (test_id, student_id) |
 | `TestSubmission` (`test_submissions`) | test_id, student_id, answers[] (recruiter's question order, -1 = blank), score, total, shortlisted | unique (test_id, student_id) |
 | `PasswordResetCode` (`password_reset_codes`) | email, 6-digit code, expires_at, used | indexed email |
@@ -259,6 +259,12 @@ All cohort mutations need a **verified student**.
 | PATCH | `/{id}/submissions/{student_id}/shortlist` | owner | `{shortlisted}` |
 | WS | `/{id}/live` | owner or sitting student | Signaling, see §10 |
 
+### AI question generation (`/ai`)
+
+| Method | Path | Auth | Behavior |
+|---|---|---|---|
+| POST | `/ai/generate-questions` | recruiter | `{provider: openai\|gemini, api_key, model?, prompt, count 1–20}` → `{questions, skipped, model}`. Drafts only; nothing is saved. See §8.5 |
+
 ## 8. Domain rules
 
 ### 8.1 Admin
@@ -277,7 +283,14 @@ A student belongs to at most one cohort. There is **no leave-cohort endpoint** a
 - Violations: 3 → `terminated`; the client then auto-submits.
 - **Editing** (owner): ended → 400; questions locked once any attempt exists (409); a live test's start can't move (400) but title and duration can; new start can't be in the past; the change can't leave the exam ending in the past. A schedule or question change re-emails the cohort.
 
-### 8.5 Jobs
+### 8.5 AI question generation and code questions
+- A question may carry an optional `code` snippet (max 4000 chars) and a `language` from `enums/code_languages.py` (python, javascript, typescript, java, c, cpp, csharp, go, rust, kotlin, php, sql, bash, json, xml, plaintext). The snippet is shown, highlighted, under the question text for "what is the output of this code?" questions. A blank snippet is dropped; unknown languages become `plaintext`. `QuestionCreate` also rejects a `correct_index` outside the options.
+- `POST /ai/generate-questions` (`services/ai_service.py`) calls OpenAI (`chat/completions`, strict JSON schema, default model `gpt-4o-mini`) or Gemini (`generateContent`, `responseSchema`, default `gemini-3.8-flash`) with **the recruiter's own key**. The key travels in the request body, is held as a `SecretStr`, is sent to the provider in a header, and is never stored or logged. The model name is editable and must match `[A-Za-z0-9._:-]{1,80}`.
+- Output is validated per question (2–6 distinct non-empty options, in-range `correct_index`, text ≤ 500, snippet ≤ 4000, markdown fences stripped); unusable ones are dropped and counted in `skipped`. Provider errors map to 400 (bad key, bad model), 429 (quota), 422 (refusal or blocked), 502/504 (provider down, bad output, timeout); the key is scrubbed from any echoed message.
+- The AI's answers, especially for code output, **can be wrong**. Nothing executes the code; the recruiter must check each marked answer. The form says so.
+- Client: `components/recruiter/ai-question-generator.tsx` (provider, key, optional model, prompt, count; "Remember" stores the key unencrypted in `localStorage` under `unihire.ai-settings`, off by default), `question-editor.tsx` (per-question "Add code" with a language picker and `components/ui/code-editor.tsx`, a textarea over a highlighted copy, Tab indents) and `components/ui/code-block.tsx` (read-only, used in the student exam). Highlighting is highlight.js core with 16 registered languages (`lib/highlight.ts`); token colours are CSS variables in `globals.css` and follow dark mode. Generated questions replace the untouched starter question or are appended.
+
+### 8.6 Jobs
 Category is a free string; the UI offers `engineering`, `data-ai`, `design`, `product`, `marketing`, `finance`, `other`. Salary filtering uses `salary_min`/`salary_max` parsed by `parse_salary_range` (`50k`, `40,000-60,000`); jobs with no parsed range drop out when a salary filter is active.
 
 ## 9. Frontend
@@ -352,4 +365,5 @@ Found while reading the code; none are fixed unless noted in `HANDOFF.md`.
 10. Exam emails are sent from `asyncio.create_task` with no retry; if the process stops mid-send, remaining students are not emailed.
 11. `forgot-password` and `reset-password` ignore admins by design.
 12. `README.md` was stale in several places (company endpoints, `?university_id=` on departments, "single-use" verification links, docker-compose scope); it has been corrected alongside this file.
-13. No automated tests. `__pycache__` files are tracked in git.
+13. The AI endpoint has no rate limit; a recruiter can call it as often as their own provider allows.
+14. No automated tests. `__pycache__` files are tracked in git.

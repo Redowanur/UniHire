@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, ClipboardList, Lock, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowRight, ClipboardList, Lock, Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { PlacementBadge } from "@/components/status-badge";
@@ -29,7 +29,6 @@ import {
 import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import {
@@ -42,6 +41,8 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { AiQuestionGenerator } from "@/components/recruiter/ai-question-generator";
+import { QuestionEditor } from "@/components/recruiter/question-editor";
 import { useAuth } from "@/hooks/use-auth";
 import {
   createScreeningTest,
@@ -67,7 +68,24 @@ function toLocalInput(iso: string): string {
 }
 
 function emptyQuestion(): QuestionDraft {
-  return { text: "", options: ["", "", "", ""], correct_index: 0 };
+  return { text: "", options: ["", "", "", ""], correct_index: 0, code: null, language: null };
+}
+
+/** True for the untouched starter question, which AI-generated questions replace instead of following. */
+function isBlank(q: QuestionDraft): boolean {
+  return !q.text.trim() && !(q.code ?? "").trim() && q.options.every((o) => !o.trim());
+}
+
+/** The shape the API wants. Code keeps its indentation; only blank lines at the ends go. */
+function toPayload(q: QuestionDraft): QuestionDraft {
+  const code = (q.code ?? "").replace(/^\s*\n/, "").trimEnd();
+  return {
+    text: q.text.trim(),
+    options: q.options.map((o) => o.trim()).filter(Boolean),
+    correct_index: q.correct_index,
+    code: code || null,
+    language: code ? (q.language ?? "plaintext") : null,
+  };
 }
 
 function RecruiterCohortPageContent() {
@@ -121,14 +139,6 @@ function RecruiterCohortPageContent() {
     setQuestions((current) => current.map((q, i) => (i === index ? { ...q, ...patch } : q)));
   }
 
-  function updateOption(qIndex: number, oIndex: number, value: string) {
-    setQuestions((current) =>
-      current.map((q, i) =>
-        i === qIndex ? { ...q, options: q.options.map((o, j) => (j === oIndex ? value : o)) } : q,
-      ),
-    );
-  }
-
   function resetForm() {
     setTitle("");
     setDescription("");
@@ -158,6 +168,8 @@ function RecruiterCohortPageContent() {
             text: q.text,
             options: q.options,
             correct_index: q.correct_index,
+            code: q.code ?? null,
+            language: q.language ?? null,
           })),
         );
         setShowForm(true);
@@ -193,11 +205,7 @@ function RecruiterCohortPageContent() {
           ...(locked
             ? {}
             : {
-                questions: questions.map((q) => ({
-                  text: q.text.trim(),
-                  options: q.options.map((o) => o.trim()).filter(Boolean),
-                  correct_index: q.correct_index,
-                })),
+                questions: questions.map(toPayload),
               }),
         },
         accessToken,
@@ -247,11 +255,7 @@ function RecruiterCohortPageContent() {
           description: description.trim() || undefined,
           start_time: new Date(startAt).toISOString(),
           duration_minutes: Number(duration),
-          questions: questions.map((q) => ({
-            text: q.text.trim(),
-            options: q.options.map((o) => o.trim()).filter(Boolean),
-            correct_index: q.correct_index,
-          })),
+          questions: questions.map(toPayload),
         },
         accessToken,
       );
@@ -489,55 +493,27 @@ function RecruiterCohortPageContent() {
                 </div>
               ) : (
                 <>
+              {accessToken ? (
+                <AiQuestionGenerator
+                  accessToken={accessToken}
+                  onGenerated={(generated) =>
+                    setQuestions((current) => {
+                      const kept = current.filter((q) => !isBlank(q));
+                      return [...kept, ...generated.map((q) => ({ ...emptyQuestion(), ...q }))];
+                    })
+                  }
+                />
+              ) : null}
+
               {questions.map((question, qIndex) => (
-                <div key={qIndex} className="rounded-xl border p-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-semibold text-muted-foreground">Question {qIndex + 1}</p>
-                    {questions.length > 1 ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        className="text-destructive"
-                        onClick={() => setQuestions((current) => current.filter((_, i) => i !== qIndex))}
-                        aria-label="Remove question"
-                      >
-                        <Trash2 />
-                      </Button>
-                    ) : null}
-                  </div>
-                  <Input
-                    required
-                    placeholder="Question text"
-                    value={question.text}
-                    onChange={(event) => updateQuestion(qIndex, { text: event.target.value })}
-                    className="mt-2"
-                  />
-                  <RadioGroup
-                    value={String(question.correct_index)}
-                    onValueChange={(v) => updateQuestion(qIndex, { correct_index: Number(v) })}
-                    className="mt-3 gap-2"
-                  >
-                    {question.options.map((option, oIndex) => (
-                      <div key={oIndex} className="flex items-center gap-3">
-                        <RadioGroupItem
-                          value={String(oIndex)}
-                          id={`q${qIndex}-o${oIndex}`}
-                          aria-label={`Mark option ${oIndex + 1} as correct`}
-                        />
-                        <Label htmlFor={`q${qIndex}-o${oIndex}`} className="sr-only">
-                          Option {oIndex + 1}
-                        </Label>
-                        <Input
-                          required
-                          placeholder={`Option ${oIndex + 1}`}
-                          value={option}
-                          onChange={(event) => updateOption(qIndex, oIndex, event.target.value)}
-                        />
-                      </div>
-                    ))}
-                  </RadioGroup>
-                </div>
+                <QuestionEditor
+                  key={qIndex}
+                  index={qIndex}
+                  question={question}
+                  canRemove={questions.length > 1}
+                  onChange={(patch) => updateQuestion(qIndex, patch)}
+                  onRemove={() => setQuestions((current) => current.filter((_, i) => i !== qIndex))}
+                />
               ))}
 
               <Button
