@@ -13,6 +13,7 @@ from schemas.recruiter_schema import (
 from enums.user_enums import UserType
 from models.recruiter_model import Recruiter
 from core.security import hash_password
+from services.auth_service import email_in_use, email_taken_error
 
 router = APIRouter(prefix="/recruiter", tags=["Recruiter Management"])
 
@@ -22,9 +23,13 @@ router = APIRouter(prefix="/recruiter", tags=["Recruiter Management"])
 )
 async def create_recruiter(recruiter_data: RecruiterCreateRequest) -> RecruiterCreateResponse:
     
+    email = recruiter_data.email.strip().lower()  # login lowercases, so store it that way
+    if await email_in_use(email):
+        raise email_taken_error()
+
     recruiter = Recruiter(
         name=recruiter_data.name,
-        email=recruiter_data.email,
+        email=email,
         password_hash=hash_password(recruiter_data.password),
         phone=recruiter_data.phone,
         user_type=UserType.RECRUITER,
@@ -38,10 +43,7 @@ async def create_recruiter(recruiter_data: RecruiterCreateRequest) -> RecruiterC
     except Exception as e:
         # Handle duplicate key error for email
         if "duplicate key error" in str(e).lower():
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Email is already registered",
-            )
+            raise email_taken_error()
         else:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

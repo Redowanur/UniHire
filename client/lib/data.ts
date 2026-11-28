@@ -36,6 +36,7 @@ export const footerPlatform: FooterLink[] = [
   { label: "How it works", href: "/#how-it-works" },
   { label: "Who's hiring", href: "/hiring" },
   { label: "Create a cohort", href: "/onboarding/cohort" },
+  { label: "Developer docs", href: "/docs" },
 ];
 
 export const footerAccounts: FooterLink[] = [

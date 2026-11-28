@@ -32,20 +32,20 @@ Students form cohorts by university and department, then invite companies to the
 ## Features
 
 ### Students
-- Sign up with a university email (restricted to allowed domains) and a fixed `+880` phone prefix.
-- Must verify their email through an emailed link before they can do anything else. The link is single-use and expires after 48 hours.
+- Sign up with their email and a fixed `+880` phone prefix. University and department are picked from a list, or typed in to add a new one.
+- Must verify their email through an emailed link before they can do anything else. The link expires after 48 hours; clicking it again just reports "already verified".
 - Get cohort suggestions based on their university and department. They can also search for a cohort or create one.
 - Join a cohort through an **invite link**. A link is multi-use, can have an optional expiry, and can be revoked.
 - See cohort details: members' placement status and the companies the cohort has contacted, with the status of each invite.
 - Invite recruiters to campus from any job post, with an optional note.
-- Take screening tests published for their cohort and see their score.
+- Take scheduled, proctored screening tests published for their cohort (camera, microphone and tab-switch monitoring) and see their score.
 
 ### Recruiters
 - Sign up with any organization name (no company registry check), then verify their email.
 - Post, view and delete job posts (title, type, workplace, category, salary, experience, location and more).
 - Accept or decline campus invitations from cohorts.
 - Open an accepted cohort to see its roster and placement status.
-- Create multiple-choice screening tests for a cohort, review submissions, and shortlist students.
+- Create and edit scheduled multiple-choice screening tests for a cohort, watch students live, review results, and shortlist students.
 
 ### Public site
 - Home page with a hero search that gives live suggestions, platform stats, a hiring feed, a how-it-works section and an FAQ.
@@ -112,7 +112,8 @@ Students form cohorts by university and department, then invite companies to the
 │   ├── db/database.py              # Mongo client + Beanie init
 │   ├── enums/  utils/
 │   └── requirements.txt
-├── docker-compose.yml              # MongoDB for local development
+├── docker-compose.yml              # MongoDB + API + client
+├── DOCUMENTATION.md                # Detailed technical documentation
 └── README.md
 ```
 
@@ -129,8 +130,10 @@ Students form cohorts by university and department, then invite companies to the
 ### 1. Start MongoDB
 
 ```bash
-docker compose up -d
+docker compose up -d mongodb
 ```
+
+(`docker compose up -d --build` starts the whole stack instead; see `DOCUMENTATION.md`.)
 
 This exposes MongoDB on **`localhost:27018`**. The compose file maps host port 27018 to the container's 27017.
 
@@ -163,12 +166,9 @@ Open http://localhost:3000.
 
 ### 4. Seed reference data
 
-Signup needs universities and departments to exist. Create them through the API (see `/docs`):
+Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `server/.env`, log in at `/login`, and add universities and departments on `/admin`. Students can also type a new university or department at signup, which adds it to the list.
 
-- `POST /api/v1/universities`
-- `POST /api/v1/departments`
-
-Student signup is limited to the email domains in `server/enums/student_enums.py` (`ALLOWED_STUDENT_EMAIL_DOMAINS`). Add your university's domain there to allow it.
+The `ALLOWED_STUDENT_EMAIL_DOMAINS` list in `server/enums/student_enums.py` is currently not enforced.
 
 ---
 
@@ -183,7 +183,9 @@ Student signup is limited to the email domains in `server/enums/student_enums.py
 | `SMTP_HOST` | for email | SMTP server host |
 | `SMTP_PORT` | no | Defaults to `587` |
 | `SMTP_USERNAME` / `SMTP_PASSWORD` | for email | SMTP credentials |
-| `EMAIL_FROM` | no | Sender, defaults to `Job Portal <no-reply@jobportal.local>` |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | for admin | Seed the single admin account at startup |
+| `MAILJET_API_KEY`, `MAILJET_SECRET_KEY` | no | HTTPS email (also `BREVO_API_KEY`, `RESEND_API_KEY`); used before SMTP |
+| `EMAIL_FROM` | no | Sender, `Name <address>`; defaults to `Job Portal <no-reply@jobportal.local>` |
 | `FRONTEND_URL` | no | Used to build links in emails. Defaults to `http://localhost:3000` |
 
 The database name is `placement_portal`.
@@ -192,9 +194,8 @@ The database name is `placement_portal`.
 
 | Variable | Description |
 |---|---|
-| `NEXT_PUBLIC_API_URL` | Backend base URL. Defaults to `http://localhost:8000` in `client/lib/api.ts`. |
-
-> The existing `client/.env` defines `NEXT_PUBLIC_BASE_URL`, but the code reads `NEXT_PUBLIC_API_URL`. Rename it, or rely on the default, so the setting takes effect.
+| `NEXT_PUBLIC_API_URL` | Backend base URL (build time). Defaults to `http://localhost:8000`. |
+| `API_INTERNAL_URL` | Where Next forwards `/api/v1/*` and server-side fetches go. Defaults to `http://localhost:8000`. |
 
 Never commit `.env` files (both are git-ignored).
 
@@ -241,11 +242,11 @@ All routes are under `/api/v1`. "Auth" means `Authorization: Bearer <token>`.
 | Method | Path | Purpose |
 |---|---|---|
 | POST / GET / PATCH | `/students` | Student signup, list, update |
-| POST / GET | `/recruiter` | Recruiter signup (any company name), list |
-| POST / GET | `/universities` | Create / list universities |
-| POST / GET | `/departments` | Create / list departments (`?university_id=`) |
-| POST / GET | `/company` | Company records (not required for recruiter signup) |
-| GET | `/stats` | Public counts for the hero (universities, cohorts, recruiters) |
+| POST | `/recruiter` | Recruiter signup (any company name) |
+| GET / PATCH | `/recruiter/{id}` | Profile (any login) / update (self or admin) |
+| POST / GET | `/universities` | Create (admin) / list universities |
+| POST / GET | `/departments` | Create (admin) / list departments (global, not per university) |
+| GET | `/stats` | Public counts for the hero (universities, cohorts, students, recruiters) |
 
 ### Jobs
 | Method | Path | Auth | Purpose |
@@ -297,13 +298,17 @@ Salary ranges are stored as `salary_min`/`salary_max` numbers, parsed from the s
 |---|---|---|
 | POST | `/screening-tests` | Recruiter creates a test for an accepted invite |
 | GET | `/screening-tests` | List (filter by `cohort_id`, `campus_invite_id`) |
-| GET | `/screening-tests/{id}` | Test detail (correct answers hidden from students) |
-| POST | `/screening-tests/{id}/submit` | Student submits answers, returns score |
+| GET | `/screening-tests/{id}` | Schedule and phase (questions only for the owner) |
+| PATCH | `/screening-tests/{id}` | Owner edits title, schedule or questions |
+| POST | `/screening-tests/{id}/start` | Student opens the exam, gets questions in a private shuffled order |
+| POST | `/screening-tests/{id}/violations` | Student reports a proctoring violation (3 ends the exam) |
+| POST | `/screening-tests/{id}/submit` | Student submits answers keyed by question id, returns score |
+| WS | `/screening-tests/{id}/live` | WebRTC signaling for live monitoring |
 | GET | `/screening-tests/{id}/submissions` | Recruiter views submissions |
 | PATCH | `/screening-tests/{id}/submissions/{student_id}/shortlist` | Shortlist or unshortlist |
 
 ### Data model (MongoDB collections)
-`students`, `recruiters`, `universities`, `departments`, `companies`, `jobs`, `cohorts`, cohort invite links, campus invites, screening tests, test submissions, and password reset codes. Models live in `server/models/`.
+`students`, `recruiters`, `admins`, `universities`, `departments`, `jobs`, `cohorts`, `cohort_invite_links`, `campus_invites`, `screening_tests`, `test_attempts`, `test_submissions` and `password_reset_codes`. Models live in `server/models/`.
 
 Placement status values: `not_placed`, `in_process`, `interview`, `placed`. Campus invite status: `pending`, `accepted`, `rejected`.
 
@@ -348,5 +353,6 @@ There is no automated test suite yet. Current verification is type-check, lint, 
 - CORS currently allows every origin; restrict `allow_origins` in `server/main.py` before deploying.
 - Jobs created before salary parsing was added have no numeric salary, so they are excluded when a salary filter is active.
 - Recruiter organization names are not validated, so anyone can register under any company name.
+- Live monitoring needs a single API process and has no TURN server. See `DOCUMENTATION.md` for this and other known issues.
 - There are no automated tests, and `__pycache__` files are tracked in git.
-- Email sending requires valid SMTP settings; without them verification and reset emails will not be delivered.
+- Email sending requires an HTTPS provider or SMTP settings; without them emails are only written to the server log.

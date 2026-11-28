@@ -10,6 +10,7 @@ from enums.user_enums import UserType
 from enums.student_enums import PlacementStatus
 from models.department_model import Department
 from models.university_model import University
+from services.auth_service import email_in_use, email_taken_error
 from services.catalog_service import get_or_create_department, get_or_create_university
 
 router = APIRouter(prefix="/students", tags=["Student Management"])
@@ -21,6 +22,10 @@ router = APIRouter(prefix="/students", tags=["Student Management"])
     status_code=status.HTTP_201_CREATED,
 )
 async def create_student(student_data: StudentCreate):
+    # Check before creating a university/department, and across every role
+    if await email_in_use(student_data.email):
+        raise email_taken_error()
+
         
     if student_data.uni_id:
         university = await University.get(student_data.uni_id)
